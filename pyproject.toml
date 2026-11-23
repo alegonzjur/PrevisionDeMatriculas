@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prevision"
+version = "0.1.0"
+description = "Previsión de matrícula en Grado en Enfermería por centro (SIIU)"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+# Herramientas para el notebook de cada fase y para ejecutarlo en los tests.
+notebooks = [
+    "ipykernel",
+    "nbformat",
+    "nbclient",
+    "nbconvert",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
