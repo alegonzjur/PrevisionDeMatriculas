@@ -20,7 +20,7 @@ Leídos solo en lectura, sin modificar el Excel.
 - La hoja "Matriculados Global por centro" mezcla `Nivel` Grado (7914 filas), Máster (7522) y Doctorado (2338).
 - **La titulación no siempre es el texto literal de `CLAUDE.md`.** Hay 8 filas "Graduado o Graduada en Enfermería" y muchas más "Graduado o Graduada en Enfermería por la Universidad de X". Con el literal exacto se perderían casi todos los centros. Con el patrón `^Graduado o Graduada en Enfermería( por .*)?$` salen **158 filas, 145 combinaciones universidad+centro, 70 universidades**, todas de nivel Grado.
 - 13 filas comparten universidad + nombre de centro con otro código de titulación (cambios de plan). Ejemplos:
-  - Almería: `2501129` (hasta 2016-17) y `2504090` (desde 2025-26), sin solapamiento.
+  - Almería: `2501129` (hasta 2020-21) y `2504090` (desde 2021-22), sin solapamiento.
   - Granada: `1500083` (solo 2025-26, 199) y `2501351` (todos los cursos, 613 en 2025-26), con solapamiento.
 - El nombre del centro puede cambiar con el mismo código: Melilla (`52000452`) aparece como "Facultad de Ciencias de la Salud de Melilla" y como "Facultad de Enfermería de Melilla".
 - San Juan de Dios: Sevilla `41015500` ("Centro de Enfermería San Juan de Dios") tiene 67/87 en 2025-26/2024-25 y 233 en 2016-17. Pontificia Comillas `28042772` (EUEF San Juan de Dios) tiene 1195/949 y 473. **Ambos tienen datos en los mismos cursos.** Comillas tiene además otro centro, `07009045` (Alberta Giménez), que no forma parte del caso.
