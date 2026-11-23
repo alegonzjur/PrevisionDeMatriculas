@@ -6,10 +6,14 @@ Proyecto de MLOps de tamaño reducido: prever el nº de estudiantes matriculados
 en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso).
 
 ## Decisiones tomadas
-- Unidad de análisis: panel por centro (universidad + centro), no solo total nacional.
+- Unidad de análisis: panel por centro (universidad + código de centro), no solo total nacional.
 - Variable objetivo: matriculados totales (no nuevo ingreso; posible ampliación futura).
 - Evaluación: validación de origen móvil, siempre comparada con un modelo ingenuo.
 - Datos: SIIU (Ministerio de Ciencia, Innovación y Universidades), cursos 2015-16 a 2025-26.
+- Enfoque: modelo primero, MLOps por capas (MLflow, DVC/pipeline, CI, Streamlit), cada
+  herramienta cuando resuelva un problema real. Prioridad: calidad del modelo y su evaluación.
+- `data/raw/Egresados.xlsx` queda fuera por ahora.
+- Diseño y fases: docs/superpowers/specs/2026-11-23-prevision-matriculas-design.md.
 
 ## Datos
 - Fichero original: data/raw/Matriculados.xlsx. NO modificar nunca.
@@ -19,16 +23,25 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
 - NaN = titulación sin dato ese curso (no hay ceros).
 
 ## Reglas de limpieza (documentar cada una)
-- Quedarse solo con "Graduado o Graduada en Enfermería".
-- Excluir Diplomado en Enfermería y programas conjuntos (PCEO / dobles grados).
-- Algunas series se parten por cambios de código (p. ej. Granada, Almería):
-  unificar por universidad + centro y dejar constancia de la regla aplicada.
+- Quedarse solo con "Graduado o Graduada en Enfermería". El título aparece también como
+  "Graduado o Graduada en Enfermería por la Universidad de X": la regla admite ese sufijo.
+- Excluir Diplomado en Enfermería, programas conjuntos (PCEO / dobles grados), másteres y doctorados.
+- Algunas series se parten por cambios de código de titulación (p. ej. Granada, Almería):
+  unificar por universidad + código de centro (el nombre puede cambiar con el mismo código)
+  y SUMAR los códigos de titulación del centro por curso (suma con NaN si todos son NaN).
 - Cambio de adscripción conocido: Centro de Enfermería San Juan de Dios (Univ. Sevilla)
-  pasa a EUEF San Juan de Dios (Univ. Pontificia Comillas). Tratar como caso especial.
+  pasa a EUEF San Juan de Dios (Univ. Pontificia Comillas). Decisión: se dejan como
+  DOS series separadas (no se suman). Documentado en docs/fase-1-limpieza.md.
+- El resultado de la limpieza está en data/processed/ (no se versiona; se regenera con
+  `python -m prevision.pipeline`). Cada regla queda en el registro de limpieza.
 
 ## Entorno
-- Windows, conda (entorno: matricula-enf), Python 3.11.
-- Tests con pytest. Control de versiones con git (una rama por tarea).
+- Windows, conda (entorno: prev-mat), Python 3.11. Instalación: `pip install -e ".[notebooks]"`.
+- Código en src/prevision/ (paquete), tests con pytest, notebooks en notebooks/.
+- Control de versiones con git: UNA RAMA POR FASE (p. ej. fase-1-limpieza), integrada por Pull Request.
+- Cada fase deja: un documento en docs/ (docs/fase-N-*.md), un notebook que deja constancia de los
+  pasos y el mismo código disponible como pipeline. El notebook llama a las funciones del paquete,
+  sin lógica propia, para que notebook y pipeline no puedan divergir.
 
 ## Cómo quiero trabajar
 - Explica el razonamiento ANTES de implementar y espera mi conformidad en cambios grandes.

@@ -1,0 +1,14 @@
+# Datos generados por el pipeline (se regeneran con: python -m prevision.pipeline)
+data/processed/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Espacio de trabajo local de la ejecución del plan
+.superpowers/
