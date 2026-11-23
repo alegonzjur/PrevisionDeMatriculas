@@ -77,7 +77,7 @@ Conviene tenerlo presente al modelar (fase 4) y, si se prefiere, revisar entonce
 
 ## Límites y errores reales
 
-- **2025-26 es provisional** (avance) y puede revisarse. Va marcado en `is_provisional`.
+- **2025-26 es provisional** (avance) y puede revisarse. Va marcado en `is_provisional`: se marca siempre el último curso del fichero, de modo que sigue siendo correcto al añadir cursos nuevos.
 - **Series cortas y con huecos.** El panel tiene 1 584 filas (144 centros × 11 cursos), de las que 325 son
   `NaN` (sin dato ese curso). Solo 95 centros tienen los 11 cursos con dato; 49 tienen menos, y **12 centros
   tienen un solo curso con dato**. La fase 2 debe decidir qué centros entran en el modelo.
@@ -92,7 +92,7 @@ Conviene tenerlo presente al modelar (fase 4) y, si se prefiere, revisar entonce
 conda activate prev-mat
 pip install -e ".[notebooks]"        # una vez
 python -m prevision.pipeline         # genera data/processed/enfermeria_panel.csv y cleaning_log.md
-pytest                               # 36 tests (incluye ejecutar el notebook)
+pytest                               # 37 tests (incluye ejecutar el notebook)
 ```
 
 Para actualizar con datos nuevos: sustituir `data/raw/Matriculados.xlsx` (que el programa nunca modifica) y

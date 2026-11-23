@@ -26,8 +26,7 @@ LEVEL_PREFIX = "Grado"  # excluye Máster y Doctorado
 # y doctorados porque el texto debe empezar y terminar así.
 NURSING_DEGREE_PATTERN = r"^Graduado o Graduada en Enfermería( por .*)?$"
 
-# El último curso publicado (2025-26) es un avance provisional.
-PROVISIONAL_YEAR = 2025
+# El último curso del fichero (hoy 2025-26) es un avance provisional: ver wide_to_long.
 
 # Cabecera del Excel (en español) -> nombre de columna (en inglés).
 COLUMN_MAP = {

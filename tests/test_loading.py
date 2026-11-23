@@ -61,6 +61,19 @@ def test_wide_to_long_season_and_provisional(workbook):
     assert not seasons.loc[2023, "is_provisional"]
 
 
+def test_wide_to_long_flags_only_the_latest_season_as_provisional(tmp_path):
+    # Tras una actualización de datos (llega 2026-27), el provisional es el último curso.
+    path = build_workbook(
+        tmp_path / "raw.xlsx",
+        [make_row(values={2026: (10, 0.5), 2025: (9, 0.5), 2024: (8, 0.5)})],
+        [],
+        years=(2026, 2025, 2024),
+    )
+    long = wide_to_long(read_raw_sheet(path, SHEET_CENTERS))
+    provisional = long.loc[long["is_provisional"], "year_start"].unique().tolist()
+    assert provisional == [2026]
+
+
 def test_wide_to_long_row_count(workbook):
     wide = read_raw_sheet(workbook, SHEET_CENTERS)
     long = wide_to_long(wide)

@@ -7,7 +7,6 @@ import pandas as pd
 from prevision.config import (
     COLUMN_MAP,
     HEADER_ROW,
-    PROVISIONAL_YEAR,
     SEASON_ROW,
 )
 
@@ -66,11 +65,13 @@ def wide_to_long(wide: pd.DataFrame) -> pd.DataFrame:
     """Pasa de una columna por curso a una fila por (titulación, curso).
 
     Añade year_start (int), season ("2025-2026"), enrolled, pct_women e
-    is_provisional (True solo para el curso provisional).
+    is_provisional: True solo para el ÚLTIMO curso del fichero, que el SIIU publica
+    como avance provisional. Así sigue siendo correcto al incorporar cursos nuevos.
     """
     value_columns = [c for c in wide.columns if c.startswith(("enrolled_", "pct_women_"))]
     id_columns = [c for c in wide.columns if c not in value_columns]
     years = sorted({int(c.rsplit("_", 1)[1]) for c in value_columns}, reverse=True)
+    provisional_year = years[0]
 
     parts = []
     for year in years:
@@ -79,6 +80,6 @@ def wide_to_long(wide: pd.DataFrame) -> pd.DataFrame:
         part["season"] = f"{year}-{year + 1}"
         part["enrolled"] = wide[f"enrolled_{year}"]
         part["pct_women"] = wide[f"pct_women_{year}"]
-        part["is_provisional"] = year == PROVISIONAL_YEAR
+        part["is_provisional"] = year == provisional_year
         parts.append(part)
     return pd.concat(parts, ignore_index=True)
