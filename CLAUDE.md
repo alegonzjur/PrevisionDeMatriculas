@@ -50,6 +50,16 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
   `JUMP_RATIO` (1,5) solo marca saltos: no se corrigen. Ambos en `config.py`. Límites y casos sin
   enlazar (p. ej. Nebrija 28051891 → 28055225, enlazado a mano) en docs/fase-2-exploracion.md.
 
+## Evaluación y líneas base (fase 3)
+- Un modelo es una función `historia -> previsión` (historia: matrícula por `year_start`, sin NaN, hasta el
+  origen). Los de la fase 4 se evalúan con `rolling_origin_forecasts` y `compute_metrics`, sin tocar el marco.
+- Origen móvil: el origen `t` ve solo cursos con dato hasta `t` y prevé `t+1`. `MIN_TRAIN` = 4 cursos con dato,
+  `MA_WINDOW` = 3. Solo series elegibles. Hay un test de no-fuga: no hay que debilitarlo.
+- Métricas: MAE, WAPE, MAPE y sesgo, por curso objetivo y total, con y sin 2025-26 (provisional). Siempre
+  junto al ingenuo (`*_vs_naive`).
+- Listón actual (docs/fase-3-lineas-base.md): WAPE ingenuo 4,8 %, deriva 4,4 %, media móvil 7,8 %. La deriva
+  solo gana en centros grandes. Salidas: `baseline_forecasts.csv` y `baseline_metrics.csv`.
+
 ## Entorno
 - Windows, conda (entorno: prev-mat), Python 3.11. Instalación: `pip install -e ".[notebooks]"`.
 - Código en src/prevision/ (paquete), tests con pytest, notebooks en notebooks/.

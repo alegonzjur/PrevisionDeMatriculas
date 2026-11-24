@@ -60,8 +60,7 @@ Documento: `docs/fase-2-exploracion.md`.
 
 ## Fase 3: líneas base y evaluación de origen móvil
 
-Documento: `docs/fase-3-lineas-base.md` (se escribe al cerrar la fase). Decisiones ya aprobadas por el
-autor al empezar:
+Documento: `docs/fase-3-lineas-base.md`.
 
 | Decisión | Motivo | Quién |
 |---|---|---|
@@ -73,4 +72,17 @@ autor al empezar:
 | Test de no-fuga: alterar datos posteriores al origen no cambia la previsión de ese origen | Evita la fuga de información del futuro | Propuesta |
 | Sin MLflow todavía | Con tres funciones sin parámetros que ajustar no resuelve un problema real | Propuesta |
 
-Se completará al cerrar la fase con las decisiones que surjan durante la implementación.
+Decisiones tomadas durante la implementación:
+
+| Decisión | Motivo | Quién |
+|---|---|---|
+| `drift` usa la pendiente media de toda la historia, calculada por año (no por posición) | Un curso sin dato en medio no distorsiona la pendiente. Sin ventana: no se ha probado con ventana | Criterio |
+| Una serie con exactamente 4 cursos no da ningún par | Hace falta un curso más como objetivo; afecta a 2 de las 112 series elegibles | Criterio |
+| Añadir `bias` (error medio con signo) a las métricas | Sin él no se ve que las tres líneas base infravaloran en un periodo de crecimiento | Criterio |
+| Añadir `compare_to_naive` (pares y series donde un modelo mejora al ingenuo) | Contesta "en qué centros y por cuánto" con cifras reproducibles desde el notebook, sin lógica propia en él | Criterio |
+| Añadir `add_size_tier` (terciles de `size_last`) | El notebook necesita agrupar por tamaño sin lógica propia | Criterio |
+| Informar siempre del tamaño de la muestra y avisar de que las diferencias pequeñas no están contrastadas | Los 761 pares salen de 110 series y no son independientes | Criterio |
+
+Resultado que condiciona la fase 4: la deriva mejora un 8 % el WAPE del ingenuo (4,4 % frente a 4,8 %), pero
+solo la sostienen los centros grandes; en los medianos y pequeños gana el ingenuo. La media móvil es
+claramente peor (+64 %). Detalle y límites en `docs/fase-3-lineas-base.md`.
