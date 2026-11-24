@@ -7,7 +7,10 @@ import pytest
 from conftest import make_panel
 from prevision.evaluation import (
     BASELINES,
+    add_size_tier,
+    compute_metrics,
     drift,
+    metrics_report,
     moving_average,
     naive,
     rolling_origin_forecasts,
@@ -152,3 +155,118 @@ def test_empty_input_returns_empty_frame_with_columns():
     result = rolling_origin_forecasts(_series().iloc[0:0])
     assert result.empty
     assert list(result.columns) == FORECAST_COLUMNS
+
+
+# ------------------------------------------------------ métricas y tramos
+
+
+def _forecasts(*rows):
+    """Previsiones a mano: tuplas (modelo, y_true, y_pred[, target_year[, provisional]])."""
+    records = []
+    for row in rows:
+        model, y_true, y_pred, *rest = row
+        target_year = rest[0] if rest else 2024
+        provisional = rest[1] if len(rest) > 1 else False
+        records.append(
+            {
+                "series_id": "U|A",
+                "origin_year": target_year - 1,
+                "target_year": target_year,
+                "model": model,
+                "y_true": float(y_true),
+                "y_pred": float(y_pred),
+                "is_provisional_target": provisional,
+            }
+        )
+    return pd.DataFrame(records, columns=FORECAST_COLUMNS)
+
+
+def test_metrics_hand_computed():
+    row = compute_metrics(_forecasts(("naive", 100, 150), ("naive", 300, 300))).iloc[0]
+    assert row["n_pairs"] == 2
+    assert row["mae"] == 25
+    assert row["wape"] == pytest.approx(0.125)
+    assert row["mape"] == pytest.approx(0.25)
+    assert row["n_excluded_mape"] == 0
+
+
+def test_zero_y_true_excluded_from_mape_and_counted():
+    row = compute_metrics(_forecasts(("naive", 0, 5), ("naive", 100, 110))).iloc[0]
+    assert row["mape"] == pytest.approx(0.1)
+    assert row["n_excluded_mape"] == 1
+    assert row["mae"] == pytest.approx(7.5)
+    assert row["wape"] == pytest.approx(0.15)
+
+
+def test_wape_is_nan_when_total_is_zero():
+    row = compute_metrics(_forecasts(("naive", 0, 5))).iloc[0]
+    assert np.isnan(row["wape"])
+    assert np.isnan(row["mape"])
+
+
+def test_vs_naive_relative_difference():
+    forecasts = _forecasts(
+        ("naive", 100, 110), ("naive", 100, 110), ("drift", 100, 120), ("drift", 100, 120)
+    )
+    metrics = compute_metrics(forecasts).set_index("model")
+    assert metrics.loc["naive", "wape_vs_naive"] == pytest.approx(0.0)
+    assert metrics.loc["drift", "wape_vs_naive"] == pytest.approx(1.0)
+    assert metrics.loc["drift", "mae_vs_naive"] == pytest.approx(1.0)
+
+
+def test_vs_naive_is_nan_without_naive():
+    metrics = compute_metrics(_forecasts(("drift", 100, 120)))
+    assert metrics["wape_vs_naive"].isna().all()
+
+
+def test_group_by_target_year():
+    forecasts = _forecasts(
+        ("naive", 100, 110, 2023), ("naive", 100, 130, 2024), ("drift", 100, 100, 2024)
+    )
+    metrics = compute_metrics(forecasts, by=["target_year"])
+    naive_2023 = metrics[(metrics.model == "naive") & (metrics.target_year == 2023)].iloc[0]
+    naive_2024 = metrics[(metrics.model == "naive") & (metrics.target_year == 2024)].iloc[0]
+    assert (naive_2023["n_pairs"], naive_2023["mae"]) == (1, 10)
+    assert (naive_2024["n_pairs"], naive_2024["mae"]) == (1, 30)
+    assert len(metrics) == 3
+    drift_2024 = metrics[(metrics.model == "drift") & (metrics.target_year == 2024)].iloc[0]
+    assert drift_2024["mae_vs_naive"] == pytest.approx(-1.0)  # error 0 frente a 30
+
+
+def test_metrics_report_scopes():
+    forecasts = _forecasts(
+        ("naive", 100, 110, 2024), ("naive", 100, 130, 2025, True)
+    )
+    report = metrics_report(forecasts)
+    totals = report[report["target_year"].isna()].set_index("scope")
+    assert totals.loc["todos", "n_pairs"] == 2
+    assert totals.loc["sin_provisional", "n_pairs"] == 1
+    assert totals.loc["todos", "mae"] == 20
+    assert totals.loc["sin_provisional", "mae"] == 10
+    by_year = report[report["scope"] == "sin_provisional"].dropna(subset=["target_year"])
+    assert by_year["target_year"].tolist() == [2024]
+
+
+def test_empty_forecasts_give_empty_metrics_with_columns():
+    empty = _forecasts()
+    metrics = compute_metrics(empty)
+    assert metrics.empty
+    assert {"model", "n_pairs", "mae", "wape", "mape"} <= set(metrics.columns)
+    report = metrics_report(empty)
+    assert report.empty
+    assert {"scope", "target_year", "model", "wape"} <= set(report.columns)
+
+
+def test_add_size_tier_terciles():
+    quality = pd.DataFrame(
+        {"series_id": [f"U|{c}" for c in "ABCDEF"], "size_last": [10, 20, 30, 40, 50, 60]}
+    )
+    forecasts = pd.concat(
+        [_forecasts(("naive", 100, 100)).assign(series_id=f"U|{c}") for c in "ABCDEF"],
+        ignore_index=True,
+    )
+    result = add_size_tier(forecasts, quality)
+    tiers = result.set_index("series_id")["size_tier"]
+    assert tiers["U|A"] == tiers["U|B"] == "pequeño"
+    assert tiers["U|C"] == tiers["U|D"] == "mediano"
+    assert tiers["U|E"] == tiers["U|F"] == "grande"

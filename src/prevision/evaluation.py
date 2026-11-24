@@ -99,3 +99,92 @@ def rolling_origin_forecasts(
                     }
                 )
     return pd.DataFrame(rows, columns=FORECAST_COLUMNS)
+
+
+METRIC_COLUMNS = ["n_pairs", "mae", "wape", "mape", "n_excluded_mape"]
+VS_NAIVE_COLUMNS = ["mae_vs_naive", "wape_vs_naive", "mape_vs_naive"]
+SIZE_TIER_LABELS = ["pequeño", "mediano", "grande"]
+
+
+def _group_metrics(group: pd.DataFrame) -> pd.Series:
+    """MAE, WAPE y MAPE de un grupo de pares (y_true, y_pred)."""
+    error = (group["y_pred"] - group["y_true"]).abs()
+    total = group["y_true"].sum()
+    nonzero = group["y_true"] != 0
+    return pd.Series(
+        {
+            "n_pairs": len(group),
+            "mae": error.mean(),
+            # WAPE: error relativo del conjunto (domina el tamaño de los centros grandes).
+            "wape": error.sum() / total if total != 0 else float("nan"),
+            # MAPE: error relativo medio por par (todos pesan igual); sin y_true == 0.
+            "mape": (error[nonzero] / group.loc[nonzero, "y_true"]).mean()
+            if nonzero.any()
+            else float("nan"),
+            "n_excluded_mape": int((~nonzero).sum()),
+        }
+    )
+
+
+def compute_metrics(forecasts: pd.DataFrame, by: list[str] | None = None) -> pd.DataFrame:
+    """Métricas por modelo (y por cada combinación de las columnas de `by`).
+
+    Añade `mae_vs_naive`, `wape_vs_naive` y `mape_vs_naive`: la métrica del modelo
+    dividida entre la del ingenuo del mismo grupo, menos 1 (0 para el ingenuo; NaN si no
+    hay ingenuo o su métrica es 0 o NaN).
+    """
+    keys = list(by or [])
+    columns = keys + ["model"] + METRIC_COLUMNS + VS_NAIVE_COLUMNS
+    if forecasts.empty:
+        return pd.DataFrame(columns=columns)
+
+    grouped = forecasts.groupby(keys + ["model"], sort=True)
+    result = grouped[["y_true", "y_pred"]].apply(_group_metrics).reset_index()
+
+    for metric in ("mae", "wape", "mape"):
+        baseline = result.loc[result["model"] == "naive", keys + [metric]]
+        baseline = baseline.rename(columns={metric: "_naive"})
+        if keys:
+            merged = result[keys].merge(baseline, on=keys, how="left")["_naive"]
+        else:
+            merged = pd.Series(baseline["_naive"].iloc[0] if len(baseline) else float("nan"), index=result.index)
+        merged.index = result.index
+        ratio = result[metric] / merged.where(merged > 0)
+        result[f"{metric}_vs_naive"] = ratio - 1
+    result["n_pairs"] = result["n_pairs"].astype(int)
+    result["n_excluded_mape"] = result["n_excluded_mape"].astype(int)
+    return result[columns]
+
+
+def metrics_report(forecasts: pd.DataFrame) -> pd.DataFrame:
+    """Métricas en total y por curso objetivo, con todos los pares y sin el provisional."""
+    scopes = {
+        "todos": forecasts,
+        "sin_provisional": forecasts[~forecasts["is_provisional_target"]],
+    }
+    frames = []
+    for scope, subset in scopes.items():
+        total = compute_metrics(subset)
+        total.insert(0, "target_year", float("nan"))
+        per_year = compute_metrics(subset, by=["target_year"])
+        for frame in (total, per_year):
+            frame.insert(0, "scope", scope)
+            frames.append(frame)
+    columns = ["scope", "target_year", "model"] + METRIC_COLUMNS + VS_NAIVE_COLUMNS
+    non_empty = [f for f in frames if not f.empty]
+    if not non_empty:
+        return pd.DataFrame(columns=columns)
+    report = pd.concat(non_empty, ignore_index=True)
+    report["target_year"] = report["target_year"].astype(float)
+    return report[columns]
+
+
+def add_size_tier(
+    forecasts: pd.DataFrame, quality: pd.DataFrame, n_tiers: int = 3
+) -> pd.DataFrame:
+    """Añade `size_tier` (terciles de `size_last` de la tabla de calidad)."""
+    labels = SIZE_TIER_LABELS if n_tiers == 3 else [str(i + 1) for i in range(n_tiers)]
+    tiers = pd.qcut(quality.set_index("series_id")["size_last"], n_tiers, labels=labels)
+    result = forecasts.copy()
+    result["size_tier"] = result["series_id"].map(tiers.astype(object))
+    return result
