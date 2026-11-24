@@ -22,6 +22,7 @@ from prevision.config import (
     SHEET_CENTERS,
     SHEET_DEGREES,
 )
+from prevision.evaluation import metrics_report, rolling_origin_forecasts
 from prevision.linking import apply_links, detect_candidates, load_links
 from prevision.loading import read_raw_sheet, wide_to_long
 from prevision.quality import series_quality
@@ -131,6 +132,28 @@ def build_series(
     return candidates, series, quality
 
 
+def evaluate_baselines(
+    series: pd.DataFrame,
+    quality: pd.DataFrame,
+    out_dir: Path = PROCESSED_DIR,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Fase 3: previsiones de origen móvil de las líneas base y sus métricas.
+
+    Solo entran las series elegibles. Escribe `baseline_forecasts.csv` y
+    `baseline_metrics.csv` y devuelve `(forecasts, metrics)`.
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    eligible_ids = quality.loc[quality["eligible"], "series_id"]
+    forecasts = rolling_origin_forecasts(series[series["series_id"].isin(eligible_ids)])
+    metrics = metrics_report(forecasts)
+
+    forecasts.to_csv(out_dir / "baseline_forecasts.csv", index=False, encoding="utf-8")
+    metrics.to_csv(out_dir / "baseline_metrics.csv", index=False, encoding="utf-8")
+    return forecasts, metrics
+
+
 def main() -> None:
     panel = run_pipeline()
     n_centers = panel.drop_duplicates(["university", "center_code"]).shape[0]
@@ -143,6 +166,13 @@ def main() -> None:
         f"{int(quality['eligible'].sum())} elegibles; "
         f"{len(candidates)} candidatos a enlace ({int(candidates['ambiguous'].sum())} ambiguos)"
     )
+
+    forecasts, metrics = evaluate_baselines(series, quality)
+    totals = metrics[(metrics["scope"] == "todos") & metrics["target_year"].isna()]
+    print(f"Evaluación de origen móvil: {forecasts['series_id'].nunique()} series, "
+          f"{len(forecasts) // max(forecasts['model'].nunique(), 1)} pares por modelo")
+    for row in totals.itertuples():
+        print(f"  {row.model}: WAPE {row.wape:.1%}, MAE {row.mae:.1f}, MAPE {row.mape:.1%}")
 
 
 if __name__ == "__main__":

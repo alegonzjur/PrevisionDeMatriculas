@@ -12,3 +12,6 @@ __pycache__/
 
 # Espacio de trabajo local de la ejecución del plan
 .superpowers/
+
+# Diseños y planes de trabajo: material local. Las decisiones van en docs/decisiones.md
+docs/superpowers/
