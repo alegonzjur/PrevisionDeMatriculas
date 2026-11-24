@@ -46,7 +46,7 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
 - Salida en `data/processed/`: `enfermeria_series.csv`, `series_quality.csv`, `link_candidates.csv`.
 - Elegible para prever = llega al último curso y tiene al menos `MIN_SEASONS` (4) cursos con dato.
   `JUMP_RATIO` (1,5) solo marca saltos: no se corrigen. Ambos en `config.py`. Límites y casos sin
-  enlazar (p. ej. Nebrija 28051891 → 28055225) en docs/fase-2-exploracion.md.
+  enlazar (p. ej. Nebrija 28051891 → 28055225, enlazado a mano) en docs/fase-2-exploracion.md.
 
 ## Entorno
 - Windows, conda (entorno: prev-mat), Python 3.11. Instalación: `pip install -e ".[notebooks]"`.

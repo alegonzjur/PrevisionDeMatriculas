@@ -50,7 +50,7 @@ Decisiones del autor sobre los 22 candidatos:
 
 - **14 enlaces `sí`**: Barcelona (2, cadena A→B→C), Católica de Ávila, Católica de Valencia, Europea de
   Madrid, Francisco de Vitoria, La Laguna, La Rioja (2, cadena), País Vasco (2), Pompeu Fabra, Salamanca y
-  Valladolid. Dan 12 series con centros enlazados (dos de ellas son cadenas de tres centros).
+  Valladolid.
 - **1 `dudoso`**: Internacional de la Empresa (64 → 190, el tamaño se triplica; puede ser un centro nuevo y
   no una sucesión).
 - **7 `no`**: la clínica Mompía (Cantabria, 20 matriculados) frente a Católica de Ávila y seis pares de
@@ -62,6 +62,12 @@ Leioa escuela (`48008744`) → Facultad de Medicina y Enfermería (`48012841`, 6
 pares quedan `no`. Aplicar los ocho es imposible: Donostia tendría cuatro enlaces de salida y Leioa
 aparece a la vez como origen y destino, lo que forma un ciclo (`apply_links` lo rechaza con `ValueError`).
 Es un juicio por nombre y tamaño; enlazarlos solo añade el curso 2015-16 a series que ya tienen 10 cursos.
+
+**Enlace manual fuera de los candidatos.** Antonio de Nebrija `28051891` → `28055225` (`sí`). El código
+antiguo se extingue poco a poco (524 en 2021-22 → 3 en 2025-26) mientras el nuevo crece (48 → 395), y la
+suma queda estable (421, 419, 425 y 398 desde 2022-23). No salía como candidato porque el centro antiguo
+sigue activo con 3 alumnos (ver límites). Con él son **15 enlaces `sí`** y 13 series con centros enlazados
+(dos de ellas, cadenas de tres centros).
 
 **San Juan de Dios** (Sevilla → Pontificia Comillas) no aparece entre los candidatos porque son
 universidades distintas. Sigue como dos series, según la decisión de la fase 1.
@@ -78,7 +84,7 @@ los ciclos y las bifurcaciones (dos enlaces desde el mismo centro).
 igual que en la fase 1). Se comprueba en los tests y en cada ejecución del pipeline (`build_series` lanza
 `ValueError` si falla).
 
-Resultado: **144 centros → 130 series**.
+Resultado: **144 centros → 129 series**.
 
 ### Calidad de series (`prevision.quality.series_quality`)
 
@@ -93,8 +99,8 @@ para no fabricar saltos falsos.
 
 | Parámetro | Valor | Por qué |
 |---|---:|---|
-| `MIN_SEASONS` | 4 | Entre las 124 series activas, 11 tienen de 1 a 3 cursos, 3 tienen 4 y el resto 7 o más: el corte natural cae entre 3 y 4. |
-| `JUMP_RATIO` | 1,5 | La mediana del mayor salto por serie es 1,10 y el percentil 90 es 2,06. Con 1,5 se marcan 22 series (17 %); con 2,0 serían 14 y con 3,0, 6. |
+| `MIN_SEASONS` | 4 | Entre las 123 series activas, 11 tienen de 1 a 3 cursos, 2 tienen 4 y el resto 7 o más: el corte natural cae entre 3 y 4. |
+| `JUMP_RATIO` | 1,5 | La mediana del mayor salto por serie es 1,10 y el percentil 90 es 2,00. Con 1,5 se marcan 20 series (16 %); con 2,0 serían 12 y con 3,0, 4. |
 
 Son los valores provisionales del diseño: tras mirar las distribuciones no se cambiaron. Son constantes
 en `config.py`, así que cambiarlos es editar el valor y regenerar. **`MIN_SEASONS = 4` es un mínimo de
@@ -105,11 +111,11 @@ cursos de entrenamiento y puede exigir un mínimo mayor.
 
 | | Sin enlazar | Con enlaces |
 |---|---:|---:|
-| Series | 144 | 130 |
-| Activas en 2025-26 | 124 | 124 |
-| **Elegibles** | **109** | **113** |
+| Series | 144 | 129 |
+| Activas en 2025-26 | 124 | 123 |
+| **Elegibles** | **109** | **112** |
 
-Enlazar sube en 4 el número de series elegibles (de 109 a 113): al unir centros, algunas series que
+Enlazar sube en 3 el número de series elegibles (de 109 a 112): al unir centros, algunas series que
 quedaban fuera por poca historia pasan a tener cursos suficientes.
 
 **17 series no elegibles:**
@@ -124,9 +130,9 @@ quedaban fuera por poca historia pasan a tener cursos suficientes.
   Villanueva) y tres con 3 (Europea Miguel de Cervantes y dos de Loyola Andalucía).
 
 Las series cortas **no se podrán prever con rigor**: quedan fuera del conjunto elegible. Entre las
-elegibles, el tamaño en 2025-26 tiene mediana 429 (mínimo 3, máximo 1913).
+elegibles, el tamaño en 2025-26 tiene mediana 433 (mínimo 55, máximo 1913).
 
-**Saltos.** 13 de las 113 series elegibles tienen al menos un salto interanual superior a 1,5. No se
+**Saltos.** 11 de las 112 series elegibles tienen al menos un salto interanual superior a 1,5. No se
 corrigen: son crecimiento real de centros que abren grupos o cambios administrativos, y borrarlos sería
 inventar datos. Solo se marcan (`max_jump_ratio`, `n_jumps`) para que la fase 3 los tenga presentes.
 
@@ -136,11 +142,10 @@ inventar datos. Solo se marcan (`max_jump_ratio`, `n_jumps`) para que la fase 3 
   series distintas sin que nada lo delate después; por eso cada uno lleva su nota y el fichero está en git.
 - **La regla de detección no encuentra todas las sucesiones.** Solo considera como A los centros que
   terminan antes del último curso. Si el centro antiguo se extingue poco a poco y sigue con unos pocos
-  alumnos en 2025-26, no es candidato. Caso real: Antonio de Nebrija `28051891` cae de 524 (2021-22) a 3
-  (2025-26) mientras `28055225` sube de 48 (2022-23) a 395. Es una sucesión evidente y **no está
-  enlazada**: sin enlazar, la primera serie figura como elegible con 3 matriculados en el último curso
-  (la única elegible con menos de 30 alumnos) y su salto (×47) es un artefacto. Pendiente de decidir si se
-  amplía la regla y se enlaza.
+  alumnos en 2025-26, no es candidato. Caso real: Antonio de Nebrija `28051891` → `28055225`, que se enlazó
+  a mano (ver arriba). Antes de enlazarlo era la única serie elegible con menos de 30 alumnos y su salto
+  (×47) era un artefacto. **No se ha buscado de forma sistemática si hay más casos así**; los centros
+  con matrícula final muy baja y los saltos grandes son la pista.
 - **Otros cierres sin sucesor.** Las series que terminan antes con pocos alumnos (Málaga, Europea de Madrid
   `46035631`, Autónoma de Barcelona, València) parecen colas de planes que se extinguen. Murcia `30013116`
   (225 alumnos en 2022-23, 9 cursos) desaparece sin candidato: no se sabe si es un cierre o un cambio de
@@ -148,7 +153,7 @@ inventar datos. Solo se marcan (`max_jump_ratio`, `n_jumps`) para que la fase 3 
 - **2025-26 es provisional.** Una serie que "termina" ahí o que empieza ahí puede estar incompleta, y el
   último curso de las demás puede revisarse.
 - **Elegible no significa fácil de prever.** Es un filtro de historia mínima. No mide si la serie es
-  estable (13 elegibles tienen saltos) ni si el tamaño es suficiente para un porcentaje de error con
+  estable (11 elegibles tienen saltos) ni si el tamaño es suficiente para un porcentaje de error con
   sentido.
 - **San Juan de Dios** (Sevilla y Comillas) sigue como dos series: el modelo puede confundir la
   transferencia administrativa con tendencia (ver fase 1).
