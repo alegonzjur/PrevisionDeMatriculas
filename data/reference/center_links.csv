@@ -1,0 +1,23 @@
+university,from_center_code,to_center_code,decision,note
+Barcelona,08032831,08072826,sí,Cambio de código 2016-17; tamaño 1588 a 1557
+Barcelona,08072826,08073481,sí,Cambio de código 2022-23 (pasa a Facultad de Enfermería); tamaño 1607 a 1680
+Católica Santa Teresa de Jesús de Ávila,05006521,05006582,sí,Cambio de código 2017-18; tamaño 244 a 284
+Católica Santa Teresa de Jesús de Ávila,05006521,39014609,no,Clínica Mompía (Cantabria) con 20 matriculados: no es sucesor
+Católica de Valencia San Vicente Mártir,46035604,46062577,sí,Cambio de código 2018-19; tamaño 1221 a 1197
+Europea de Madrid,28051852,28045980,sí,Cambio de nombre y código 2023-24 (mismo campus); tamaño 575 a 643
+Francisco de Vitoria,28051323,28054282,sí,Cambio de código 2015-16; tamaño 489 a 516
+Internacional de la Empresa,28055250,28056023,dudoso,El tamaño se triplica (64 a 190): puede ser un centro nuevo y no una sucesión
+La Laguna,38012381,38012605,sí,Cambio de código 2024-25 (a Facultad de Enfermería); tamaño 545 a 537
+La Rioja,26002679,26003775,sí,Cambio de código 2020-21; tamaño 310 a 312
+La Rioja,26003775,26004056,sí,Cambio de código 2021-22; tamaño 312 a 301
+País Vasco/Euskal Herriko Unibertsitatea,20008684,20009664,sí,Escuela de Donostia-San Sebastián a Facultad Sección Guipúzcoa; juicio por nombre y tamaño (525 a 499)
+País Vasco/Euskal Herriko Unibertsitatea,48008744,48012841,sí,Escuela de Leioa a Facultad de Medicina y Enfermería; juicio por nombre y tamaño (687 a 686)
+País Vasco/Euskal Herriko Unibertsitatea,20008684,48008744,no,Otro territorio: Donostia no es sucesor de Leioa
+País Vasco/Euskal Herriko Unibertsitatea,20008684,01001723,no,Otro territorio: Vitoria-Gasteiz sigue activa
+País Vasco/Euskal Herriko Unibertsitatea,20008684,48012841,no,Otro territorio: Donostia no pasa a la Facultad de Leioa
+País Vasco/Euskal Herriko Unibertsitatea,48008744,20008684,no,Otro territorio: Leioa no es sucesor de Donostia
+País Vasco/Euskal Herriko Unibertsitatea,48008744,01001723,no,Otro territorio: Vitoria-Gasteiz sigue activa
+País Vasco/Euskal Herriko Unibertsitatea,48008744,20009664,no,Otro territorio: Leioa no pasa a la Facultad de Guipúzcoa
+Pompeu Fabra,08071305,08073491,sí,Cambio de código 2023-24 (Tecnocampus); tamaño 368 a 386
+Salamanca,37007900,37010881,sí,Cambio de código 2018-19 (a Facultad); tamaño 385 a 394
+Valladolid,42004133,42004170,sí,Cambio de código 2018-19 (Soria); tamaño 265 a 247
