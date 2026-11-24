@@ -9,6 +9,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_FILE = PROJECT_ROOT / "data" / "raw" / "Matriculados.xlsx"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
+# Enlaces de códigos de centro confirmados a mano (se versiona, a diferencia de processed/).
+LINKS_FILE = PROJECT_ROOT / "data" / "reference" / "center_links.csv"
+
+# Calidad de series (fase 2). Valores provisionales: se fijan con los datos en la tarea 5.
+MIN_SEASONS = 4  # cursos con dato mínimos para que una serie sea elegible
+JUMP_RATIO = 1.5  # cociente interanual a partir del cual un cambio se marca como salto
+
 # Hojas relevantes del Excel.
 SHEET_CENTERS = "Matriculados Global por centro"  # base del panel por centro
 SHEET_DEGREES = "Matriculados Grado"  # se usa para validar totales por universidad
