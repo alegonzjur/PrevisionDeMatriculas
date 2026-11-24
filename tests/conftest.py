@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 from openpyxl import Workbook
 
 from prevision.config import SHEET_CENTERS, SHEET_DEGREES
@@ -55,6 +56,33 @@ def make_row(
     }
     row.update(extra)
     return row
+
+
+def make_panel(rows: list[tuple[str, str, int, float]]) -> pd.DataFrame:
+    """Panel de la fase 1 a partir de tuplas (universidad, código de centro, año, matrícula).
+
+    Rellena el resto de columnas con valores fijos; el último curso del panel
+    se marca como provisional, igual que hace la fase 1.
+    """
+    panel = pd.DataFrame(
+        rows, columns=["university", "center_code", "year_start", "enrolled"]
+    )
+    panel["center_name"] = "Centro " + panel["center_code"]
+    panel["season"] = panel["year_start"].map(lambda y: f"{y}-{y + 1}")
+    panel["pct_women"] = 70.0
+    panel["is_provisional"] = panel["year_start"] == panel["year_start"].max()
+    return panel[
+        [
+            "university",
+            "center_code",
+            "center_name",
+            "year_start",
+            "season",
+            "enrolled",
+            "pct_women",
+            "is_provisional",
+        ]
+    ]
 
 
 def _write_sheet(ws, headers, rows, years, trailing_empty_rows):
