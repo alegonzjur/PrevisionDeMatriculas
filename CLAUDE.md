@@ -35,6 +35,19 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
 - El resultado de la limpieza está en data/processed/ (no se versiona; se regenera con
   `python -m prevision.pipeline`). Cada regla queda en el registro de limpieza.
 
+## Series y enlaces de centros (fase 2)
+- El panel de la fase 1 es rectangular: un curso sin dato es una fila con `enrolled` NaN. Para
+  "primer/último curso" de un centro, contar solo los cursos con matrícula informada.
+- Los cambios de código de centro (misma universidad) se enlazan a mano en
+  `data/reference/center_links.csv` (se versiona; `decision` = sí/no/dudoso, solo `sí` se aplica; cada
+  fila lleva una nota). La decisión de enlazar es siempre de la persona, nunca automática.
+- `series_id = "{universidad}|{código de centro más reciente de la cadena}"`. Una serie no puede
+  bifurcarse ni formar ciclos (error). La matrícula total por curso no cambia al enlazar (se comprueba).
+- Salida en `data/processed/`: `enfermeria_series.csv`, `series_quality.csv`, `link_candidates.csv`.
+- Elegible para prever = llega al último curso y tiene al menos `MIN_SEASONS` (4) cursos con dato.
+  `JUMP_RATIO` (1,5) solo marca saltos: no se corrigen. Ambos en `config.py`. Límites y casos sin
+  enlazar (p. ej. Nebrija 28051891 → 28055225) en docs/fase-2-exploracion.md.
+
 ## Entorno
 - Windows, conda (entorno: prev-mat), Python 3.11. Instalación: `pip install -e ".[notebooks]"`.
 - Código en src/prevision/ (paquete), tests con pytest, notebooks en notebooks/.
