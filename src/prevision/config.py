@@ -16,6 +16,10 @@ LINKS_FILE = PROJECT_ROOT / "data" / "reference" / "center_links.csv"
 MIN_SEASONS = 4  # cursos con dato mínimos para que una serie sea elegible
 JUMP_RATIO = 1.5  # cociente interanual a partir del cual un cambio se marca como salto
 
+# Evaluación de origen móvil (fase 3).
+MIN_TRAIN = 4  # cursos con dato mínimos en la historia de un origen
+MA_WINDOW = 3  # ventana de la media móvil
+
 # Hojas relevantes del Excel.
 SHEET_CENTERS = "Matriculados Global por centro"  # base del panel por centro
 SHEET_DEGREES = "Matriculados Grado"  # se usa para validar totales por universidad
