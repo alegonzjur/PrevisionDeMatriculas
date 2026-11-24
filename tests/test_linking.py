@@ -114,6 +114,28 @@ def test_no_candidates_returns_empty_frame_with_columns():
     assert list(result.columns) == COLUMNS
 
 
+def test_nan_padding_rows_do_not_hide_succession():
+    # El panel real es rectangular: los cursos sin dato son filas con matrícula NaN.
+    rows = (
+        [("U", "A", y, 100.0 if y <= 2020 else np.nan) for y in range(2015, 2026)]
+        + [("U", "B", y, 110.0 if y >= 2021 else np.nan) for y in range(2015, 2026)]
+        + _anchor()
+    )
+    result = detect_candidates(make_panel(rows))
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert (row["from_center_code"], row["to_center_code"]) == ("A", "B")
+    assert row["from_last_year"] == 2020
+    assert row["to_first_year"] == 2021
+    assert row["from_last_enrolled"] == 100
+    assert row["to_first_enrolled"] == 110
+
+
+def test_center_without_any_data_is_ignored():
+    rows = [("U", "A", y, np.nan) for y in range(2015, 2026)] + _anchor()
+    assert detect_candidates(make_panel(rows)).empty
+
+
 # ---------------------------------------------------------------- load_links
 
 

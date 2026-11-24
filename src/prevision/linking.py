@@ -45,8 +45,13 @@ CANDIDATE_COLUMNS = [
 
 
 def _summarize_centers(panel: pd.DataFrame) -> pd.DataFrame:
-    """Una fila por centro: primer y último curso, matrícula en ambos y último nombre."""
-    ordered = panel.sort_values("year_start")
+    """Una fila por centro: primer y último curso, matrícula en ambos y último nombre.
+
+    El panel es rectangular: un curso sin dato es una fila con matrícula NaN, no
+    una fila ausente. Solo cuentan los cursos con matrícula informada; un centro
+    sin ningún dato no aparece.
+    """
+    ordered = panel.dropna(subset=["enrolled"]).sort_values("year_start")
     grouped = ordered.groupby(["university", "center_code"], sort=False)
     first = grouped.first()
     last = grouped.last()
