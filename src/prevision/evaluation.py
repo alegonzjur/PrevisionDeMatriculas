@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 import pandas as pd
 
-from prevision.config import MA_WINDOW
+from prevision.config import MA_WINDOW, MIN_TRAIN
 
 
 def _require_history(history: pd.Series) -> None:
@@ -48,3 +48,54 @@ BASELINES: dict[str, Callable[[pd.Series], float]] = {
     "drift": drift,
     "moving_average": moving_average,
 }
+
+
+FORECAST_COLUMNS = [
+    "series_id",
+    "origin_year",
+    "target_year",
+    "model",
+    "y_true",
+    "y_pred",
+    "is_provisional_target",
+]
+
+
+def rolling_origin_forecasts(
+    series: pd.DataFrame,
+    models: dict[str, Callable[[pd.Series], float]] = BASELINES,
+    min_train: int = MIN_TRAIN,
+) -> pd.DataFrame:
+    """Previsiones de origen móvil: cada origen `t` prevé el curso `t+1`.
+
+    Un par (serie, origen) existe si `t` es un curso con matrícula informada, la historia
+    hasta `t` (solo cursos con dato) tiene al menos `min_train` valores y el curso `t+1`
+    tiene dato. La historia se corta por posición antes de llamar al modelo, de modo que
+    ningún dato posterior a `t` puede influir en la previsión.
+
+    Devuelve una fila por par y modelo con las columnas de `FORECAST_COLUMNS`.
+    """
+    rows = []
+    for series_id, group in series.groupby("series_id", sort=True):
+        data = group.dropna(subset=["enrolled"]).sort_values("year_start")
+        years = data["year_start"].to_numpy()
+        values = data["enrolled"].to_numpy(dtype=float)
+        provisional = data["is_provisional"].to_numpy(dtype=bool)
+        for position in range(min_train - 1, len(data) - 1):
+            origin, target = years[position], years[position + 1]
+            if target != origin + 1:
+                continue  # el curso siguiente no tiene dato
+            history = pd.Series(values[: position + 1], index=years[: position + 1])
+            for name, model in models.items():
+                rows.append(
+                    {
+                        "series_id": series_id,
+                        "origin_year": int(origin),
+                        "target_year": int(target),
+                        "model": name,
+                        "y_true": values[position + 1],
+                        "y_pred": float(model(history)),
+                        "is_provisional_target": bool(provisional[position + 1]),
+                    }
+                )
+    return pd.DataFrame(rows, columns=FORECAST_COLUMNS)
