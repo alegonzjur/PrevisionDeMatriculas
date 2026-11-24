@@ -2,12 +2,12 @@ import hashlib
 
 import pandas as pd
 import pytest
-from conftest import build_workbook, make_row
+from conftest import build_workbook, make_panel, make_row
 
 from prevision.cleaning import CleaningLog, filter_nursing_degrees
 from prevision.config import RAW_FILE, SHEET_CENTERS
 from prevision.loading import read_raw_sheet
-from prevision.pipeline import extract, load, run_pipeline, transform
+from prevision.pipeline import build_series, extract, load, run_pipeline, transform
 
 TITLE_UGR = "Graduado o Graduada en Enfermería por la Universidad de Granada"
 
@@ -104,3 +104,70 @@ def test_real_panel_invariants(tmp_path):
     sevilla = panel[(panel.university == "Sevilla") & (panel.center_code == "41015500")]
     comillas = panel[(panel.university == "Pontificia Comillas") & (panel.center_code == "28042772")]
     assert len(sevilla) == 11 and len(comillas) == 11  # dos series distintas
+
+
+# ------------------------------------------------------------ build_series
+
+
+def _succession_panel():
+    """A (2015-2020) sucedido por B (2021-2025) en la misma universidad, más un centro activo."""
+    rows = (
+        [("U", "A", y, 100.0) for y in range(2015, 2021)]
+        + [("U", "B", y, 110.0) for y in range(2021, 2026)]
+        + [("V", "C", y, 50.0) for y in range(2015, 2026)]
+    )
+    return make_panel(rows)
+
+
+def _write_links(path, *rows):
+    lines = ["university,from_center_code,to_center_code,decision,note"]
+    lines += [",".join(r) for r in rows]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def test_build_series_writes_three_files(tmp_path):
+    out = tmp_path / "processed"
+    links = _write_links(tmp_path / "links.csv", ("U", "A", "B", "sí", "prueba"))
+    candidates, series, quality = build_series(_succession_panel(), links, out)
+    for name in ("link_candidates.csv", "enfermeria_series.csv", "series_quality.csv"):
+        assert (out / name).exists()
+    assert len(candidates) == 1
+    assert sorted(series["series_id"].unique()) == ["U|B", "V|C"]
+    assert len(quality) == 2
+
+
+def test_build_series_warns_without_links_file(tmp_path):
+    out = tmp_path / "processed"
+    with pytest.warns(UserWarning, match="center_links.csv|enlaces"):
+        _, series, _ = build_series(_succession_panel(), tmp_path / "no_existe.csv", out)
+    # Sin enlaces cada centro conserva su propia serie.
+    assert sorted(series["series_id"].unique()) == ["U|A", "U|B", "V|C"]
+    assert (out / "link_candidates.csv").exists()
+
+
+def test_build_series_with_confirmed_link_merges_series(tmp_path):
+    links = _write_links(tmp_path / "links.csv", ("U", "A", "B", "sí", ""))
+    _, series, quality = build_series(_succession_panel(), links, tmp_path / "out")
+    merged = series[series["series_id"] == "U|B"]
+    assert len(merged) == 11
+    assert quality.set_index("series_id").loc["U|B", "is_linked"]
+
+
+def test_total_enrolled_unchanged_by_build_series(tmp_path):
+    panel = _succession_panel()
+    links = _write_links(tmp_path / "links.csv", ("U", "A", "B", "sí", ""))
+    _, series, _ = build_series(panel, links, tmp_path / "out")
+    pd.testing.assert_series_equal(
+        panel.groupby("year_start")["enrolled"].sum(),
+        series.groupby("year_start")["enrolled"].sum(),
+    )
+
+
+def test_build_series_keeps_leading_zeros_in_written_files(tmp_path):
+    rows = [("U", "01234", y, 100.0) for y in range(2015, 2026)]
+    out = tmp_path / "out"
+    with pytest.warns(UserWarning):
+        build_series(make_panel(rows), tmp_path / "no_existe.csv", out)
+    saved = pd.read_csv(out / "enfermeria_series.csv", dtype=str)
+    assert saved["center_code_final"].iloc[0] == "01234"
