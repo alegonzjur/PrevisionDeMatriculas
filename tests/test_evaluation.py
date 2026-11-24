@@ -8,6 +8,7 @@ from conftest import make_panel
 from prevision.evaluation import (
     BASELINES,
     add_size_tier,
+    compare_to_naive,
     compute_metrics,
     drift,
     metrics_report,
@@ -270,3 +271,35 @@ def test_add_size_tier_terciles():
     assert tiers["U|A"] == tiers["U|B"] == "pequeño"
     assert tiers["U|C"] == tiers["U|D"] == "mediano"
     assert tiers["U|E"] == tiers["U|F"] == "grande"
+
+
+def test_bias_is_mean_signed_error():
+    row = compute_metrics(_forecasts(("naive", 100, 150), ("naive", 300, 270))).iloc[0]
+    assert row["bias"] == pytest.approx((50 - 30) / 2)  # positivo = sobreestima
+
+
+def test_compare_to_naive_counts_pairs_and_series():
+    def pair(series_id, origin, model, y_pred):
+        return {
+            "series_id": series_id,
+            "origin_year": origin,
+            "target_year": origin + 1,
+            "model": model,
+            "y_true": 100.0,
+            "y_pred": y_pred,
+            "is_provisional_target": False,
+        }
+
+    rows = [
+        # Serie A: la deriva mejora un par y empeora otro (MAE 12,5 frente a 10)
+        pair("U|A", 2020, "naive", 110.0), pair("U|A", 2020, "drift", 105.0),
+        pair("U|A", 2021, "naive", 110.0), pair("U|A", 2021, "drift", 120.0),
+        # Serie B: la deriva acierta
+        pair("U|B", 2020, "naive", 110.0), pair("U|B", 2020, "drift", 100.0),
+    ]
+    result = compare_to_naive(pd.DataFrame(rows), model="drift")
+    assert result["n_pairs"] == 3
+    assert result["share_pairs_better"] == pytest.approx(2 / 3)
+    assert result["share_pairs_equal"] == 0
+    assert result["n_series"] == 2
+    assert result["n_series_better"] == 1

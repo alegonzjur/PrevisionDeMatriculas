@@ -101,7 +101,7 @@ def rolling_origin_forecasts(
     return pd.DataFrame(rows, columns=FORECAST_COLUMNS)
 
 
-METRIC_COLUMNS = ["n_pairs", "mae", "wape", "mape", "n_excluded_mape"]
+METRIC_COLUMNS = ["n_pairs", "mae", "wape", "mape", "bias", "n_excluded_mape"]
 VS_NAIVE_COLUMNS = ["mae_vs_naive", "wape_vs_naive", "mape_vs_naive"]
 SIZE_TIER_LABELS = ["pequeño", "mediano", "grande"]
 
@@ -121,6 +121,8 @@ def _group_metrics(group: pd.DataFrame) -> pd.Series:
             "mape": (error[nonzero] / group.loc[nonzero, "y_true"]).mean()
             if nonzero.any()
             else float("nan"),
+            # Sesgo: error medio con signo (positivo = sobreestima, negativo = infravalora).
+            "bias": (group["y_pred"] - group["y_true"]).mean(),
             "n_excluded_mape": int((~nonzero).sum()),
         }
     )
@@ -188,3 +190,27 @@ def add_size_tier(
     result = forecasts.copy()
     result["size_tier"] = result["series_id"].map(tiers.astype(object))
     return result
+
+
+def compare_to_naive(forecasts: pd.DataFrame, model: str) -> pd.Series:
+    """En cuántos pares y series un modelo tiene menos error absoluto que el ingenuo.
+
+    Devuelve `n_pairs`, `share_pairs_better` (fracción de pares con menor error),
+    `share_pairs_equal`, `n_series` y `n_series_better` (series cuyo MAE es menor que el
+    del ingenuo). Sirve para ver si una mejora agregada la sostienen muchos centros o
+    unos pocos grandes.
+    """
+    errors = (forecasts["y_pred"] - forecasts["y_true"]).abs()
+    table = errors.groupby(
+        [forecasts["series_id"], forecasts["origin_year"], forecasts["model"]]
+    ).first().unstack("model")
+    by_series = table.groupby("series_id").mean()
+    return pd.Series(
+        {
+            "n_pairs": len(table),
+            "share_pairs_better": (table[model] < table["naive"]).mean(),
+            "share_pairs_equal": (table[model] == table["naive"]).mean(),
+            "n_series": len(by_series),
+            "n_series_better": int((by_series[model] < by_series["naive"]).sum()),
+        }
+    )
