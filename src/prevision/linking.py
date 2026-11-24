@@ -14,6 +14,7 @@ import pandas as pd
 LINK_COLUMNS = ["university", "from_center_code", "to_center_code", "decision", "note"]
 # Solo esta decisión se aplica; "no" y "dudoso" se guardan para no volver a preguntar.
 APPLIED_DECISION = "sí"
+VALID_DECISIONS = (APPLIED_DECISION, "no", "dudoso")
 
 SERIES_COLUMNS = [
     "series_id",
@@ -132,6 +133,12 @@ def _build_final_code_map(panel: pd.DataFrame, links: pd.DataFrame) -> dict:
     un enlace erróneo, así que todo lo que no cuadra es un error y no se ignora.
     """
     known = set(zip(panel["university"], panel["center_code"]))
+    unknown = sorted(set(links["decision"]) - set(VALID_DECISIONS))
+    if unknown:
+        raise ValueError(
+            f"Valores de decision no válidos en los enlaces: {unknown}. "
+            f"Admitidos: {list(VALID_DECISIONS)} (exactamente así, con tilde)."
+        )
     applied = links[links["decision"] == APPLIED_DECISION]
 
     next_code: dict = {}

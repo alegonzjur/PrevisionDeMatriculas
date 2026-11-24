@@ -329,3 +329,10 @@ def test_output_columns():
         "n_centers",
         "n_source_codes",
     ]
+
+
+@pytest.mark.parametrize("decision", ["si", "Sí", " sí", "yes", ""])
+def test_unknown_decision_raises_instead_of_being_ignored(decision):
+    # Un "si" sin tilde no debe dejar el enlace sin aplicar en silencio.
+    with pytest.raises(ValueError, match="decision"):
+        apply_links(_succession_panel(), _links(("U", "A", "B", decision)))
