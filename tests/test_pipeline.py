@@ -7,7 +7,14 @@ from conftest import build_workbook, make_panel, make_row
 from prevision.cleaning import CleaningLog, filter_nursing_degrees
 from prevision.config import RAW_FILE, SHEET_CENTERS
 from prevision.loading import read_raw_sheet
-from prevision.pipeline import build_series, extract, load, run_pipeline, transform
+from prevision.pipeline import (
+    build_series,
+    evaluate_baselines,
+    extract,
+    load,
+    run_pipeline,
+    transform,
+)
 
 TITLE_UGR = "Graduado o Graduada en Enfermería por la Universidad de Granada"
 
@@ -171,3 +178,47 @@ def test_build_series_keeps_leading_zeros_in_written_files(tmp_path):
         build_series(make_panel(rows), tmp_path / "no_existe.csv", out)
     saved = pd.read_csv(out / "enfermeria_series.csv", dtype=str)
     assert saved["center_code_final"].iloc[0] == "01234"
+
+
+# ------------------------------------------------------ evaluate_baselines
+
+
+def _series_and_quality(tmp_path, rows):
+    """Series y calidad de un panel sintético, sin enlaces (CSV con solo la cabecera)."""
+    links = _write_links(tmp_path / "links.csv")
+    _, series, quality = build_series(make_panel(rows), links, tmp_path / "series_out")
+    return series, quality
+
+
+def _eligible_and_short_rows():
+    """Un centro con 11 cursos (elegible) y otro con 3 (no elegible)."""
+    return [("U", "A", y, 100.0 + 5 * (y - 2015)) for y in range(2015, 2026)] + [
+        ("V", "B", y, 50.0) for y in range(2023, 2026)
+    ]
+
+
+def test_evaluate_baselines_writes_two_files(tmp_path):
+    series, quality = _series_and_quality(tmp_path, _eligible_and_short_rows())
+    out = tmp_path / "eval_out"
+    forecasts, metrics = evaluate_baselines(series, quality, out)
+    assert (out / "baseline_forecasts.csv").exists()
+    assert (out / "baseline_metrics.csv").exists()
+    assert len(forecasts) == 7 * 3
+    assert set(metrics["model"]) == {"naive", "drift", "moving_average"}
+    assert set(metrics["scope"]) == {"todos", "sin_provisional"}
+
+
+def test_evaluate_baselines_uses_only_eligible_series(tmp_path):
+    series, quality = _series_and_quality(tmp_path, _eligible_and_short_rows())
+    forecasts, _ = evaluate_baselines(series, quality, tmp_path / "eval_out")
+    assert set(forecasts["series_id"]) == {"U|A"}
+
+
+def test_evaluate_baselines_without_eligible_series_returns_empty(tmp_path):
+    rows = [("V", "B", y, 50.0) for y in range(2023, 2026)]
+    series, quality = _series_and_quality(tmp_path, rows)
+    out = tmp_path / "eval_out"
+    forecasts, metrics = evaluate_baselines(series, quality, out)
+    assert forecasts.empty and metrics.empty
+    saved = pd.read_csv(out / "baseline_forecasts.csv")
+    assert saved.empty and "y_pred" in saved.columns
