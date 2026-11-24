@@ -1,8 +1,7 @@
 # Fase 2: exploración y calidad de series
 
 Rama: `fase-2-exploracion`. Notebook: `notebooks/02_exploracion.ipynb`. Pipeline: `python -m prevision.pipeline`.
-Diseño y plan: `docs/superpowers/specs/2026-11-23-fase-2-exploracion-design.md` y
-`docs/superpowers/plans/2026-11-23-fase-2-exploracion.md`.
+Decisiones y su motivo: `docs/decisiones.md`.
 
 ## Objetivo
 

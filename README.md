@@ -17,7 +17,7 @@ El detalle de decisiones y de cada fase está en `docs/`.
 | 5. MLOps por capas | pendiente | |
 | 6. Previsión 2026-27 y documentación | pendiente | |
 
-Diseño: `docs/superpowers/specs/2026-11-23-prevision-matriculas-design.md`.
+Decisiones de cada fase y su motivo: `docs/decisiones.md`.
 
 ## Estructura
 

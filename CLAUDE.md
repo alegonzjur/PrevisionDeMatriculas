@@ -13,7 +13,9 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
 - Enfoque: modelo primero, MLOps por capas (MLflow, DVC/pipeline, CI, Streamlit), cada
   herramienta cuando resuelva un problema real. Prioridad: calidad del modelo y su evaluación.
 - `data/raw/Egresados.xlsx` queda fuera por ahora.
-- Diseño y fases: docs/superpowers/specs/2026-11-23-prevision-matriculas-design.md.
+- Decisiones de cada fase y su motivo: docs/decisiones.md (se actualiza al cerrar cada fase).
+- Los diseños y planes de trabajo (docs/superpowers/) son material LOCAL: no se versionan ni se suben a
+  GitHub (están en .gitignore). Lo que debe quedar para el proyecto va a docs/decisiones.md.
 
 ## Datos
 - Fichero original: data/raw/Matriculados.xlsx. NO modificar nunca.
