@@ -20,6 +20,22 @@ JUMP_RATIO = 1.5  # cociente interanual a partir del cual un cambio se marca com
 MIN_TRAIN = 4  # cursos con dato mínimos en la historia de un origen
 MA_WINDOW = 3  # ventana de la media móvil
 
+# Modelos globales (fase 4). Hiperparámetros fijados de antemano, antes de ver resultados, y
+# nunca ajustados con los pares de evaluación. Cualquier cambio es un análisis de sensibilidad
+# y se rotula como tal.
+RIDGE_ALPHA = 10.0
+GBM_PARAMS = {
+    "max_iter": 100,
+    "learning_rate": 0.05,
+    "max_depth": 3,
+    "min_samples_leaf": 20,
+    "l2_regularization": 1.0,
+    "random_state": 0,
+}
+MIN_FEATURE_HISTORY = 3  # cursos con dato mínimos para construir un ejemplo (g1 y g2)
+MIN_TRAIN_EXAMPLES = 30  # ejemplos mínimos para ajustar un modelo global; menos es un error
+RECENT_TARGET_FROM = 2021  # primer curso objetivo del subconjunto "reciente" del informe
+
 # Hojas relevantes del Excel.
 SHEET_CENTERS = "Matriculados Global por centro"  # base del panel por centro
 SHEET_DEGREES = "Matriculados Grado"  # se usa para validar totales por universidad
