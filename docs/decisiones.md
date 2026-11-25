@@ -83,6 +83,22 @@ Decisiones tomadas durante la implementación:
 | Añadir `add_size_tier` (terciles de `size_last`) | El notebook necesita agrupar por tamaño sin lógica propia | Criterio |
 | Informar siempre del tamaño de la muestra y avisar de que las diferencias pequeñas no están contrastadas | Los 761 pares salen de 110 series y no son independientes | Criterio |
 
-Resultado que condiciona la fase 4: la deriva mejora un 8 % el WAPE del ingenuo (4,4 % frente a 4,8 %), pero
+Resultado que condiciona la fase 4: la deriva mejora un 9 % el WAPE del ingenuo (4,3 % frente a 4,7 %, cifras recalculadas en la tarea previa
+de la fase 4; antes 4,4 % frente a 4,8 %), pero
 solo la sostienen los centros grandes; en los medianos y pequeños gana el ingenuo. La media móvil es
 claramente peor (+64 %). Detalle y límites en `docs/fase-3-lineas-base.md`.
+
+## Fase 4: modelos globales
+
+Documento: `docs/fase-4-modelos.md` (se escribe al cerrar la fase).
+
+### Tarea previa: enlaces pendientes
+
+Se aplican como primer paso de la fase 4, en su misma rama, y no en una rama aparte (decisión del autor).
+
+| Decisión | Motivo | Quién |
+|---|---|---|
+| Enlazar Murcia `30013116` → `30011821` (`sí`) | La Escuela termina en 2023-24 con 225 y la Facultad sube +193 al curso siguiente; enlazadas, el salto baja de 1,26 a 1,09. El listón pasa de WAPE ingenuo 4,76 % a 4,71 % y de deriva 4,37 % a 4,30 %, con los mismos 761 pares. Coste: si fueran centros distintos, se unen dos series que no lo son | Autor |
+| València La Fe `46014601` → Facultat `46014455`: `dudoso`, no se aplica | La suma de ambas queda casi plana (1385, 1387, 1430, 1438) pero no es concluyente. Coste: La Fe sigue como serie propia y la Facultat conserva una subida que puede ser administrativa | Autor |
+| Autónoma de Barcelona, Europea de Madrid `46035631`, Málaga y València `12003274` no se enlazan | Extinciones sin sucesor visible | Autor |
+| Los tramos de tamaño siguen calculándose con todas las series de la tabla de calidad | No se cambia el método a mitad de fase; se anota que el corte pequeño/mediano pasó de 299 a 301 alumnos al salir una serie y una serie cambió de tramo | Criterio |

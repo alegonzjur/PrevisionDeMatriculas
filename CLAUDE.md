@@ -48,7 +48,7 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
 - Salida en `data/processed/`: `enfermeria_series.csv`, `series_quality.csv`, `link_candidates.csv`.
 - Elegible para prever = llega al último curso y tiene al menos `MIN_SEASONS` (4) cursos con dato.
   `JUMP_RATIO` (1,5) solo marca saltos: no se corrigen. Ambos en `config.py`. Límites y casos sin
-  enlazar (p. ej. Nebrija 28051891 → 28055225, enlazado a mano) en docs/fase-2-exploracion.md.
+  enlazar (p. ej. Nebrija 28051891 → 28055225 y Murcia 30013116 → 30011821, enlazados a mano; València La Fe, `dudoso`) en docs/fase-2-exploracion.md.
 
 ## Evaluación y líneas base (fase 3)
 - Un modelo es una función `historia -> previsión` (historia: matrícula por `year_start`, sin NaN, hasta el
@@ -57,7 +57,7 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
   `MA_WINDOW` = 3. Solo series elegibles. Hay un test de no-fuga: no hay que debilitarlo.
 - Métricas: MAE, WAPE, MAPE y sesgo, por curso objetivo y total, con y sin 2025-26 (provisional). Siempre
   junto al ingenuo (`*_vs_naive`).
-- Listón actual (docs/fase-3-lineas-base.md): WAPE ingenuo 4,8 %, deriva 4,4 %, media móvil 7,8 %. La deriva
+- Listón actual (docs/fase-3-lineas-base.md): WAPE ingenuo 4,7 %, deriva 4,3 %, media móvil 7,7 %. La deriva
   solo gana en centros grandes. Salidas: `baseline_forecasts.csv` y `baseline_metrics.csv`.
 
 ## Entorno

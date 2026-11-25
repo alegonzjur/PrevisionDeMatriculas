@@ -45,6 +45,11 @@ Se informa con todos los pares y sin los pares cuyo objetivo es 2025-26 (provisi
 
 ## Resultados
 
+Cifras recalculadas al inicio de la fase 4 con el enlace de Murcia (antes: WAPE ingenuo 4,8 %, deriva 4,4 %,
+media móvil 7,8 %; ver `docs/decisiones.md`). Los tramos de tamaño usan terciles de `size_last` sobre todas
+las series de la tabla de calidad, así que al desaparecer una serie el corte pequeño/mediano pasó de 299 a
+301 alumnos y una serie cambió de tramo (mediano 298 → 291 pares, pequeño 169 → 176).
+
 Datos actuales: **761 pares por modelo en 110 series** (objetivos 2019-20 a 2025-26: 107, 107, 108, 109,
 110, 110 y 110 pares por curso). De las 112 series elegibles, dos (`Deusto|48012899` y
 `Pontificia Comillas|07009045`) tienen exactamente 4 cursos y no dan ningún par.
@@ -53,56 +58,56 @@ Datos actuales: **761 pares por modelo en 110 series** (objetivos 2019-20 a 2025
 
 | Modelo | MAE | WAPE | MAPE | Sesgo | WAPE frente al ingenuo |
 |---|---:|---:|---:|---:|---:|
-| Ingenuo | 22,6 | 4,8 % | 5,1 % | −12,6 | |
-| **Deriva** | **20,7** | **4,4 %** | **4,7 %** | −5,1 | **−8,3 %** |
-| Media móvil | 37,2 | 7,8 % | 8,4 % | −24,1 | +64,3 % |
+| Ingenuo | 22,5 | 4,7 % | 5,0 % | −12,4 | |
+| **Deriva** | **20,5** | **4,3 %** | **4,7 %** | −4,8 | **−8,7 %** |
+| Media móvil | 36,9 | 7,7 % | 8,3 % | −23,6 | +64,3 % |
 
-Sin los pares de 2025-26 el resultado es prácticamente el mismo (651 pares): ingenuo 4,7 %, deriva 4,3 %
-(−8,5 %), media móvil 7,7 %. El curso provisional no cambia la conclusión.
+Sin los pares de 2025-26 el resultado es prácticamente el mismo (651 pares): ingenuo 4,7 %, deriva 4,2 %
+(−9,1 %), media móvil 7,6 %. El curso provisional no cambia la conclusión.
 
 ### Por curso objetivo (WAPE)
 
 | Curso | Pares | Ingenuo | Deriva | Media móvil |
 |---|---:|---:|---:|---:|
-| 2019-20 | 107 | 4,0 % | 3,7 % | 6,5 % |
-| 2020-21 | 107 | 4,3 % | 4,3 % | 6,9 % |
-| 2021-22 | 108 | 4,3 % | 3,9 % | 6,6 % |
-| 2022-23 | 109 | 5,4 % | 5,0 % | 8,3 % |
+| 2019-20 | 107 | 4,1 % | 3,7 % | 6,5 % |
+| 2020-21 | 107 | 4,3 % | 4,3 % | 6,8 % |
+| 2021-22 | 108 | 4,3 % | 3,8 % | 6,6 % |
+| 2022-23 | 109 | 5,4 % | 5,0 % | 8,2 % |
 | 2023-24 | 110 | 4,9 % | 4,7 % | 8,4 % |
-| 2024-25 | 110 | 5,3 % | 4,3 % | 9,1 % |
-| 2025-26 (provisional) | 110 | 4,9 % | 4,5 % | 8,6 % |
+| 2024-25 | 110 | 5,0 % | 3,9 % | 8,9 % |
+| 2025-26 (provisional) | 110 | 4,9 % | 4,6 % | 8,4 % |
 
-La deriva es mejor o igual que el ingenuo en los siete cursos (empate en 2020-21). La media móvil es peor en todos.
+La deriva es mejor que el ingenuo en seis de los siete cursos y en 2020-21 queda en empate práctico (4,29 % frente a 4,28 %, +0,2 % relativo). La media móvil es peor en todos.
 
 ### ¿Lo sostienen muchos centros o unos pocos?
 
 | | Deriva | Media móvil |
 |---|---:|---:|
-| Pares con menos error que el ingenuo | 48,6 % | 27,1 % |
-| Series con menor MAE que el ingenuo | 43 de 110 | 13 de 110 |
+| Pares con menos error que el ingenuo | 48,9 % | 26,9 % |
+| Series con menor MAE que el ingenuo | 44 de 110 | 13 de 110 |
 
 **La mejora de la deriva es agregada y modesta, no general.** En la mitad de los pares gana el ingenuo y
-solo en 43 de las 110 series la deriva tiene menos error. El 8 % de mejora del WAPE sale de los centros grandes:
+solo en 44 de las 110 series la deriva tiene menos error. El 9 % de mejora del WAPE sale de los centros grandes:
 
 | Tramo de tamaño (terciles de `size_last`) | Pares | WAPE ingenuo | WAPE deriva | Deriva frente al ingenuo |
 |---|---:|---:|---:|---:|
-| Grande | 294 | 5,5 % | 4,6 % | −16,9 % |
-| Mediano | 298 | 3,6 % | 3,9 % | +8,3 % |
-| Pequeño | 169 | 4,1 % | 4,6 % | +10,2 % |
+| Grande | 294 | 5,4 % | 4,5 % | −17,6 % |
+| Mediano | 291 | 3,6 % | 4,0 % | +8,5 % |
+| Pequeño | 176 | 4,0 % | 4,4 % | +9,8 % |
 
 En los centros medianos y pequeños, la deriva es **peor** que el ingenuo.
 
 ### Sesgo
 
-Las tres líneas base **infravaloran** de media (el ingenuo, 12,6 estudiantes por par; la media móvil, 24,1),
+Las tres líneas base **infravaloran** de media (el ingenuo, 12,4 estudiantes por par; la media móvil, 23,6),
 salvo en los centros pequeños, donde el sesgo es ligeramente positivo. El periodo tiene crecimiento sostenido
 (45 715 matriculados en 2015-16 y 58 956 en 2025-26, +29 %): quien prevé "como el pasado" se queda corto.
 La media móvil lo sufre más porque promedia cursos antiguos y más bajos.
 
 ## Qué significa para la fase 4
 
-- El listón real es **WAPE 4,4 %** (deriva) en el agregado y **4,8 %** (ingenuo) como suelo; en centros
-  medianos y pequeños el listón es el ingenuo (3,6 % y 4,1 %).
+- El listón real es **WAPE 4,3 %** (deriva) en el agregado y **4,7 %** (ingenuo) como suelo; en centros
+  medianos y pequeños el listón es el ingenuo (3,6 % y 4,0 %).
 - Un modelo que no mejore estas cifras no aporta, y eso es un resultado válido y se documenta.
 - Con diferencias de décimas de punto entre modelos, la fase 4 debe mirar también por tramos de tamaño y
   por serie, no solo el agregado.
@@ -113,7 +118,7 @@ La media móvil lo sufre más porque promedia cursos antiguos y más bajos.
   que cierran no están en la evaluación: prever un cierre queda fuera de alcance, y los errores reales
   sobre "todos los centros" serían algo peores.
 - **Los enlaces de centros se decidieron con todo el historial.** Una serie enlazada "sabe" hoy una
-  sucesión que en el origen aún no era visible. Afecta a 13 series; es información del futuro en la
+  sucesión que en el origen aún no era visible. Afecta a 14 series; es información del futuro en la
   definición de la serie, no en los datos.
 - **2025-26 es provisional** y puede revisarse: sus pares se miden contra un dato que puede cambiar.
 - **Los pares no son independientes.** Las 761 observaciones salen de 110 series, y una serie aporta hasta

@@ -65,7 +65,20 @@ Es un juicio por nombre y tamaño; enlazarlos solo añade el curso 2015-16 a ser
 **Enlace manual fuera de los candidatos.** Antonio de Nebrija `28051891` → `28055225` (`sí`). El código
 antiguo se extingue poco a poco (524 en 2021-22 → 3 en 2025-26) mientras el nuevo crece (48 → 395), y la
 suma queda estable (421, 419, 425 y 398 desde 2022-23). No salía como candidato porque el centro antiguo
-sigue activo con 3 alumnos (ver límites). Con él son **15 enlaces `sí`** y 13 series con centros enlazados
+sigue activo con 3 alumnos (ver límites). Con él eran 15 enlaces `sí` y 13 series con centros enlazados.
+
+**Revisión de sucesiones tipo Nebrija (2026-11-24, inicio de la fase 4).** Revisión manual de los centros
+que desaparecen o se extinguen con el código antiguo aún activo. Decisiones del autor:
+
+- Murcia `30013116` → `30011821` (`sí`). La Escuela termina en 2023-24 con 225 y la Facultad pasa de 739 a
+  932 al curso siguiente; enlazadas, el salto baja de 1,26 a 1,09.
+- València La Fe `46014601` → Facultat `46014455` (`dudoso`, no se aplica). La Fe cae de 243 a 55 en
+  2022-2025 y la Facultat sube de 1142 a 1383; la suma queda casi plana (1385, 1387, 1430, 1438) pero no
+  es concluyente.
+- Autónoma de Barcelona `08044363`, Europea de Madrid `46035631`, Málaga `29009417` y València `12003274`
+  no se enlazan: extinciones sin sucesor visible.
+
+Con el enlace de Murcia el recuento definitivo es de **16 enlaces `sí`** y 14 series con centros enlazados
 (dos de ellas, cadenas de tres centros).
 
 **San Juan de Dios** (Sevilla → Pontificia Comillas) no aparece entre los candidatos porque son
@@ -83,7 +96,7 @@ los ciclos y las bifurcaciones (dos enlaces desde el mismo centro).
 igual que en la fase 1). Se comprueba en los tests y en cada ejecución del pipeline (`build_series` lanza
 `ValueError` si falla).
 
-Resultado: **144 centros → 129 series**.
+Resultado: **144 centros → 128 series**.
 
 ### Calidad de series (`prevision.quality.series_quality`)
 
@@ -110,19 +123,18 @@ cursos de entrenamiento y puede exigir un mínimo mayor.
 
 | | Sin enlazar | Con enlaces |
 |---|---:|---:|
-| Series | 144 | 129 |
+| Series | 144 | 128 |
 | Activas en 2025-26 | 124 | 123 |
 | **Elegibles** | **109** | **112** |
 
 Enlazar sube en 3 el número de series elegibles (de 109 a 112): al unir centros, algunas series que
 quedaban fuera por poca historia pasan a tener cursos suficientes.
 
-**17 series no elegibles:**
+**16 series no elegibles:**
 
-- *No llegan a 2025-26 (6):* Internacional de la Empresa `28055250` (solo 2024-25, el `dudoso`), Málaga
+- *No llegan a 2025-26 (5):* Internacional de la Empresa `28055250` (solo 2024-25, el `dudoso`), Málaga
   `29009417` (2015-16, 10 alumnos al final), Europea de Madrid `46035631` (2015-17, 1 al final), Autónoma de
-  Barcelona `08044363` (2015-19, 4 al final), València `12003274` (2015-21, 2 al final) y Murcia `30013116`
-  (2015-2023, 225 al final).
+  Barcelona `08044363` (2015-19, 4 al final) y València `12003274` (2015-21, 2 al final).
 - *Activas pero con menos de 4 cursos (11):* seis centros que empiezan en 2025-26 (Abat Oliba CEU,
   Alfonso X el Sabio Mare Nostrum, CEU Fernando III, Internacional de la Empresa `28056023`, Miguel
   Hernández de Elche, Vic-Central de Catalunya), dos con 2 cursos (Atlántico Medio, Internacional
@@ -143,12 +155,13 @@ inventar datos. Solo se marcan (`max_jump_ratio`, `n_jumps`) para que la fase 3 
   terminan antes del último curso. Si el centro antiguo se extingue poco a poco y sigue con unos pocos
   alumnos en 2025-26, no es candidato. Caso real: Antonio de Nebrija `28051891` → `28055225`, que se enlazó
   a mano (ver arriba). Antes de enlazarlo era la única serie elegible con menos de 30 alumnos y su salto
-  (×47) era un artefacto. **No se ha buscado de forma sistemática si hay más casos así**; los centros
-  con matrícula final muy baja y los saltos grandes son la pista.
+  (×47) era un artefacto. Murcia y València La Fe salieron de una revisión manual posterior (2026-11-24).
+  **Sigue sin haber una búsqueda sistemática de más casos así**: la detección automática no ve la extinción
+  gradual con el código antiguo aún activo; los centros con matrícula final muy baja y los saltos grandes
+  son la pista.
 - **Otros cierres sin sucesor.** Las series que terminan antes con pocos alumnos (Málaga, Europea de Madrid
-  `46035631`, Autónoma de Barcelona, València) parecen colas de planes que se extinguen. Murcia `30013116`
-  (225 alumnos en 2022-23, 9 cursos) desaparece sin candidato: no se sabe si es un cierre o un cambio de
-  adscripción no detectado.
+  `46035631`, Autónoma de Barcelona, València) parecen colas de planes que se extinguen y no se enlazan. Murcia
+  `30013116` se enlazó a mano tras la revisión del 2026-11-24 (ver arriba).
 - **2025-26 es provisional.** Una serie que "termina" ahí o que empieza ahí puede estar incompleta, y el
   último curso de las demás puede revisarse.
 - **Elegible no significa fácil de prever.** Es un filtro de historia mínima. No mide si la serie es
