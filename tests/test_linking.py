@@ -321,6 +321,7 @@ def test_output_columns():
         "university",
         "center_code_final",
         "center_name",
+        "region",
         "year_start",
         "season",
         "enrolled",
@@ -336,3 +337,28 @@ def test_unknown_decision_raises_instead_of_being_ignored(decision):
     # Un "si" sin tilde no debe dejar el enlace sin aplicar en silencio.
     with pytest.raises(ValueError, match="decision"):
         apply_links(_succession_panel(), _links(("U", "A", "B", decision)))
+
+
+def test_series_keeps_region():
+    panel = make_panel(
+        _span("U", "A", 2015, 2025, 100) + _span("V", "B", 2015, 2025, 70),
+        regions={("U", "A"): "Región X", ("V", "B"): "Región Y"},
+    )
+    result = apply_links(panel, pd.DataFrame(columns=LINK_COLUMNS))
+    assert result["region"].notna().all()
+    assert result.groupby("series_id")["region"].nunique().eq(1).all()
+    assert result.set_index("series_id")["region"].to_dict() == {
+        "U|A": "Región X",
+        "V|B": "Región Y",
+    }
+
+
+def test_linked_series_takes_region_of_final_code():
+    # Caso artificial: A (Región X) pasa a B (Región Y); la serie es de B.
+    panel = make_panel(
+        _span("U", "A", 2015, 2020, 100) + _span("U", "B", 2021, 2025, 110),
+        regions={("U", "A"): "Región X", ("U", "B"): "Región Y"},
+    )
+    result = apply_links(panel, _links(("U", "A", "B", "sí")))
+    assert result["series_id"].unique().tolist() == ["U|B"]
+    assert (result["region"] == "Región Y").all()

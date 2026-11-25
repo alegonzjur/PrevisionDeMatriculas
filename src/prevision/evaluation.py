@@ -7,9 +7,23 @@ origen (indexada por `year_start`, sin NaN) y devuelve la previsión del curso s
 
 from collections.abc import Callable
 
+import numpy as np
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
-from prevision.config import MA_WINDOW, MIN_TRAIN
+from prevision.config import (
+    GBM_PARAMS,
+    MA_WINDOW,
+    MIN_TRAIN,
+    MIN_TRAIN_EXAMPLES,
+    RECENT_TARGET_FROM,
+    RIDGE_ALPHA,
+)
+from prevision.features import FEATURE_SETS, build_examples, build_prediction_rows
 
 
 def _require_history(history: pd.Series) -> None:
@@ -101,6 +115,97 @@ def rolling_origin_forecasts(
     return pd.DataFrame(rows, columns=FORECAST_COLUMNS)
 
 
+# --- Modelos globales (fase 4) ---------------------------------------------------------------
+# Un modelo global no recibe una serie sino todas: en cada origen `t` se ajusta con los ejemplos
+# cuyo curso objetivo es `<= t` y prevé `t+1`. Predice el crecimiento logarítmico del curso
+# siguiente; la previsión es `último valor * exp(predicción)`.
+
+
+def make_ridge() -> Pipeline:
+    """Ridge con imputación por la mediana y estandarización (ajustadas en cada entrenamiento)."""
+    return Pipeline(
+        [
+            ("impute", SimpleImputer(strategy="median")),
+            ("scale", StandardScaler()),
+            ("ridge", Ridge(alpha=RIDGE_ALPHA)),
+        ]
+    )
+
+
+def make_gbm() -> HistGradientBoostingRegressor:
+    """Gradient boosting con los hiperparámetros fijos de `config.GBM_PARAMS` (admite NaN)."""
+    return HistGradientBoostingRegressor(**GBM_PARAMS)
+
+
+# nombre del modelo -> (fábrica del estimador, conjunto de variables de `FEATURE_SETS`)
+GLOBAL_MODELS: dict[str, tuple[Callable[[], object], str]] = {
+    "ridge": (make_ridge, "base"),
+    "gbm": (make_gbm, "base"),
+    "ridge_region": (make_ridge, "with_region"),
+    "gbm_region": (make_gbm, "with_region"),
+    "ridge_no_system": (make_ridge, "without_system"),
+    "gbm_no_system": (make_gbm, "without_system"),
+}
+
+
+def rolling_origin_global(
+    series: pd.DataFrame,
+    models: dict[str, tuple[Callable[[], object], str]] = GLOBAL_MODELS,
+    min_train: int = MIN_TRAIN,
+) -> pd.DataFrame:
+    """Previsiones de origen móvil de modelos globales, sobre los mismos pares que las líneas base.
+
+    Los pares (serie, origen) son exactamente los de `rolling_origin_forecasts`. Para cada origen
+    `t` con pares, cada modelo se ajusta con `build_examples(series, up_to=t)` (solo objetivos
+    `<= t`) y prevé `t+1`. Si hay menos de `MIN_TRAIN_EXAMPLES` ejemplos, o un par no tiene fila de
+    variables, lanza `ValueError`: nunca se ajusta con casi nada ni se rellena con otro modelo.
+
+    Devuelve las columnas de `FORECAST_COLUMNS`, ordenado por serie, origen y modelo.
+    """
+    pairs = rolling_origin_forecasts(series, models={"naive": naive}, min_train=min_train)
+    rows = []
+    for origin, origin_pairs in pairs.groupby("origin_year", sort=True):
+        origin = int(origin)
+        examples = build_examples(series, up_to=origin)
+        if len(examples) < MIN_TRAIN_EXAMPLES:
+            raise ValueError(
+                f"Origen {origin}: {len(examples)} ejemplos de entrenamiento, "
+                f"el mínimo es {MIN_TRAIN_EXAMPLES}."
+            )
+        prediction = build_prediction_rows(series, origin=origin).set_index("series_id")
+        missing = sorted(set(origin_pairs["series_id"]) - set(prediction.index))
+        if missing:
+            raise ValueError(
+                f"Origen {origin}: sin variables para prever las series {missing} "
+                f"(¿`min_train` menor que MIN_FEATURE_HISTORY?)."
+            )
+        features = prediction.loc[origin_pairs["series_id"].to_numpy()]
+        for name, (factory, feature_set) in models.items():
+            columns = FEATURE_SETS[feature_set]
+            estimator = factory()
+            estimator.fit(examples[columns], examples["target"])
+            growth = estimator.predict(features[columns])
+            y_pred = features["last_value"].to_numpy() * np.exp(growth)
+            rows.append(
+                pd.DataFrame(
+                    {
+                        "series_id": origin_pairs["series_id"].to_numpy(),
+                        "origin_year": origin,
+                        "target_year": origin_pairs["target_year"].to_numpy(),
+                        "model": name,
+                        "y_true": origin_pairs["y_true"].to_numpy(),
+                        "y_pred": y_pred,
+                        "is_provisional_target": origin_pairs["is_provisional_target"].to_numpy(),
+                    }
+                )
+            )
+    if not rows:
+        return pd.DataFrame(columns=FORECAST_COLUMNS)
+    result = pd.concat(rows, ignore_index=True)
+    result = result.sort_values(["series_id", "origin_year"], kind="stable")
+    return result[FORECAST_COLUMNS].reset_index(drop=True)
+
+
 METRIC_COLUMNS = ["n_pairs", "mae", "wape", "mape", "bias", "n_excluded_mape"]
 VS_NAIVE_COLUMNS = ["mae_vs_naive", "wape_vs_naive", "mape_vs_naive"]
 SIZE_TIER_LABELS = ["pequeño", "mediano", "grande"]
@@ -189,6 +294,25 @@ def add_size_tier(
     tiers = pd.qcut(quality.set_index("series_id")["size_last"], n_tiers, labels=labels)
     result = forecasts.copy()
     result["size_tier"] = result["series_id"].map(tiers.astype(object))
+    return result
+
+
+def recent_metrics(
+    forecasts: pd.DataFrame, first_target_year: int = RECENT_TARGET_FROM
+) -> pd.DataFrame:
+    """Métricas de los pares cuyo curso objetivo es `>= first_target_year`.
+
+    Los primeros orígenes entrenan con pocos ejemplos; este subconjunto deja ver cómo rinden
+    los modelos globales cuando ya hay varias cohortes de entrenamiento. Es descriptivo.
+    """
+    return compute_metrics(forecasts[forecasts["target_year"] >= first_target_year])
+
+
+def add_region(forecasts: pd.DataFrame, series: pd.DataFrame) -> pd.DataFrame:
+    """Añade `region` (CCAA del SIIU) a cada previsión por `series_id`."""
+    regions = series.drop_duplicates("series_id").set_index("series_id")["region"]
+    result = forecasts.copy()
+    result["region"] = result["series_id"].map(regions)
     return result
 
 

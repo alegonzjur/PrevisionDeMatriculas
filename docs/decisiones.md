@@ -83,6 +83,48 @@ Decisiones tomadas durante la implementación:
 | Añadir `add_size_tier` (terciles de `size_last`) | El notebook necesita agrupar por tamaño sin lógica propia | Criterio |
 | Informar siempre del tamaño de la muestra y avisar de que las diferencias pequeñas no están contrastadas | Los 761 pares salen de 110 series y no son independientes | Criterio |
 
-Resultado que condiciona la fase 4: la deriva mejora un 8 % el WAPE del ingenuo (4,4 % frente a 4,8 %), pero
+Resultado que condiciona la fase 4: la deriva mejora un 9 % el WAPE del ingenuo (4,3 % frente a 4,7 %, cifras recalculadas en la tarea previa
+de la fase 4; antes 4,4 % frente a 4,8 %), pero
 solo la sostienen los centros grandes; en los medianos y pequeños gana el ingenuo. La media móvil es
 claramente peor (+64 %). Detalle y límites en `docs/fase-3-lineas-base.md`.
+
+## Fase 4: modelos globales
+
+Documento: `docs/fase-4-modelos.md`.
+
+### Tarea previa: enlaces pendientes
+
+Se aplican como primer paso de la fase 4, en su misma rama, y no en una rama aparte (decisión del autor).
+
+| Decisión | Motivo | Quién |
+|---|---|---|
+| Enlazar Murcia `30013116` → `30011821` (`sí`) | La Escuela termina en 2023-24 con 225 y la Facultad sube +193 al curso siguiente; enlazadas, el salto baja de 1,26 a 1,09. El listón pasa de WAPE ingenuo 4,76 % a 4,71 % y de deriva 4,37 % a 4,30 %, con los mismos 761 pares. Coste: si fueran centros distintos, se unen dos series que no lo son | Autor |
+| València La Fe `46014601` → Facultat `46014455`: `dudoso`, no se aplica | La suma de ambas queda casi plana (1385, 1387, 1430, 1438) pero no es concluyente. Coste: La Fe sigue como serie propia y la Facultat conserva una subida que puede ser administrativa | Autor |
+| Autónoma de Barcelona, Europea de Madrid `46035631`, Málaga y València `12003274` no se enlazan | Extinciones sin sucesor visible | Autor |
+| Los tramos de tamaño siguen calculándose con todas las series de la tabla de calidad | No se cambia el método a mitad de fase; se anota que el corte pequeño/mediano pasó de 299 a 301 alumnos al salir una serie y una serie cambió de tramo | Criterio |
+
+### Modelos y evaluación
+
+| Decisión | Motivo | Quién |
+|---|---|---|
+| Dos modelos globales: Ridge (control) y gradient boosting, con las mismas variables | Si el gradient boosting no le gana a Ridge, la no linealidad no aporta. Descartados de esta fase: modelos por serie, preentrenados y datos externos | Autor |
+| La región (CCAA del Excel) no entra como variable por defecto; sí como sensibilidad y como error descriptivo por comunidad | Diagnóstico previo: la media de la comunidad tiene correlación +0,03 con el crecimiento siguiente y la nacional −0,09; el propio, +0,66. Coste: si la región importara de forma no lineal, no se ha visto | Autor (propuesta aprobada) |
+| Los hiperparámetros se confirman tal cual y no se ajustan con los pares de evaluación | Evita presentar como honesta una previsión ajustada con los datos de evaluación. Coste: pueden no ser los mejores | Autor |
+| La versión principal es `base` (con `system_growth`) aunque `*_no_system` salga mejor | El aporte de `system_growth` se vio después de ver resultados; decidir por esos pares sería ajustar con los datos de evaluación. Coste: se mide una versión probablemente algo peor que la que se usaría | Autor |
+| Criterio de éxito: gana el modelo con WAPE total menor que la deriva y no peor que el ingenuo en tramos mediano y pequeño | Declarado antes de ver resultados. Se exige también ganar en los tramos donde la deriva pierde | Propuesta |
+| Objetivo: crecimiento logarítmico `ln(y[t+1]/y[t])` | Hace comparables los centros de distinto tamaño y el modelo parte del ingenuo (crecimiento 0) | Propuesta |
+| Informar también de los cursos objetivo desde 2021 (`RECENT_TARGET_FROM`) | Los primeros orígenes entrenan con un centenar de ejemplos. Descriptivo, no sustituye al total | Propuesta |
+| scikit-learn y no LightGBM | Una dependencia menos y el algoritmo es el mismo en lo que importa aquí | Criterio |
+| Sin identificador de universidad ni de centro | Alta cardinalidad con pocos ejemplos: dejaría al modelo memorizar series. Coste: no puede aprender particularidades de un centro | Criterio |
+| `RIDGE_ALPHA = 10,0`; `GBM_PARAMS`: `max_iter` 100, `learning_rate` 0,05, `max_depth` 3, `min_samples_leaf` 20, `l2_regularization` 1,0, `random_state` 0 | Conservadores, fijados antes de ver resultados | Criterio, confirmado por el autor |
+| `MIN_FEATURE_HISTORY = 3` y `MIN_TRAIN_EXAMPLES = 30` | Hacen falta 3 cursos para `g1` y `g2`; con menos de 30 ejemplos el ajuste no es fiable y se prefiere un error | Criterio |
+| Error explícito (`ValueError`) si un origen tiene pocos ejemplos o falta una fila de variables, y nunca rellenar con otro modelo | Un ajuste silencioso con casi nada o un par rellenado con otro modelo falsearían la comparación | Criterio |
+| La tabla se recorta al último curso visible antes de calcular variables (`up_to`, `origin`) | La garantía de no-fuga sale de la construcción y no de recordar filtrar. Efecto: una matrícula 0 en un curso futuro tampoco rompe el origen actual | Criterio |
+| `system_growth` y `region_growth` excluyen la propia serie; la de la región exige al menos 2 más | La propia serie ya está en `g1`; con una sola serie más, la media sería su valor | Criterio |
+| La región viene del Excel y no del código de centro | El prefijo del código falla en varias comunidades (28, 39, 07, 19, 46); el Excel la trae en los 144 centros. Corrige lo que se dijo al autor antes | Criterio (corrección) |
+| `unify_center_series` lanza error si un centro tiene más de una región | En los datos actuales no ocurre; evita asignar una región al azar si cambia el SIIU | Criterio |
+| `model_forecasts.csv` solo con los modelos globales; `model_metrics.csv` con líneas base y modelos juntos | Para que `*_vs_naive` compare con el ingenuo sin duplicar las previsiones de las líneas base | Criterio |
+
+Resultado de la fase: ningún modelo supera el criterio declarado. `gbm` (WAPE 4,04 %) y `ridge` (4,22 %) están por
+debajo de la deriva (4,30 %) en el total, pero ambos son peores que el ingenuo en los centros pequeños. Detalle y
+límites en `docs/fase-4-modelos.md`.

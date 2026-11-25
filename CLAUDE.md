@@ -48,7 +48,7 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
 - Salida en `data/processed/`: `enfermeria_series.csv`, `series_quality.csv`, `link_candidates.csv`.
 - Elegible para prever = llega al último curso y tiene al menos `MIN_SEASONS` (4) cursos con dato.
   `JUMP_RATIO` (1,5) solo marca saltos: no se corrigen. Ambos en `config.py`. Límites y casos sin
-  enlazar (p. ej. Nebrija 28051891 → 28055225, enlazado a mano) en docs/fase-2-exploracion.md.
+  enlazar (p. ej. Nebrija 28051891 → 28055225 y Murcia 30013116 → 30011821, enlazados a mano; València La Fe, `dudoso`) en docs/fase-2-exploracion.md.
 
 ## Evaluación y líneas base (fase 3)
 - Un modelo es una función `historia -> previsión` (historia: matrícula por `year_start`, sin NaN, hasta el
@@ -57,8 +57,23 @@ en Grado en Enfermería, por centro, para el curso siguiente (horizonte: 1 curso
   `MA_WINDOW` = 3. Solo series elegibles. Hay un test de no-fuga: no hay que debilitarlo.
 - Métricas: MAE, WAPE, MAPE y sesgo, por curso objetivo y total, con y sin 2025-26 (provisional). Siempre
   junto al ingenuo (`*_vs_naive`).
-- Listón actual (docs/fase-3-lineas-base.md): WAPE ingenuo 4,8 %, deriva 4,4 %, media móvil 7,8 %. La deriva
+- Listón actual (docs/fase-3-lineas-base.md): WAPE ingenuo 4,7 %, deriva 4,3 %, media móvil 7,7 %. La deriva
   solo gana en centros grandes. Salidas: `baseline_forecasts.csv` y `baseline_metrics.csv`.
+
+## Modelos globales (fase 4)
+- `rolling_origin_global(series)` (evaluation.py): en cada origen `t` ajusta cada modelo con los ejemplos de
+  `build_examples(series, up_to=t)` (objetivo `<= t`) y prevé `t+1` sobre los MISMOS pares que las líneas base.
+  Predice `ln(y[t+1]/y[t])`; previsión = último valor · exp(predicción). `GLOBAL_MODELS`: `ridge` y `gbm`
+  (variables `base`, versión principal) y las variantes `*_region` y `*_no_system` (solo sensibilidad).
+- Variables (features.py, `FEATURE_SETS`): `g1`, `g2`, `drift_rel`, `log_size`, `n_seasons`, `pct_women`,
+  `system_growth` (+ `region_growth`). La tabla se recorta al último curso visible antes de calcular nada. Sin
+  identificador de universidad ni de centro. La región es la CCAA del Excel, no se deriva del código de centro.
+- Hiperparámetros fijos en `config.py` (`RIDGE_ALPHA`, `GBM_PARAMS`, `MIN_TRAIN_EXAMPLES`...): NUNCA se ajustan con
+  los pares de evaluación; cualquier cambio es sensibilidad y se rotula. Error, no relleno, si faltan ejemplos.
+- Criterio de éxito (declarado antes de ver resultados): WAPE total menor que la deriva Y no peor que el ingenuo
+  en los tramos mediano y pequeño. Resultado (docs/fase-4-modelos.md): ninguno lo supera. `gbm` 4,04 % y `ridge`
+  4,22 % frente a deriva 4,30 % e ingenuo 4,71 %, pero ambos peores que el ingenuo en centros pequeños.
+- Salidas: `model_forecasts.csv` (solo modelos globales) y `model_metrics.csv` (líneas base y modelos).
 
 ## Entorno
 - Windows, conda (entorno: prev-mat), Python 3.11. Instalación: `pip install -e ".[notebooks]"`.

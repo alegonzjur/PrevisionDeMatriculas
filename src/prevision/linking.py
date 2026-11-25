@@ -21,6 +21,7 @@ SERIES_COLUMNS = [
     "university",
     "center_code_final",
     "center_name",
+    "region",
     "year_start",
     "season",
     "enrolled",
@@ -180,7 +181,8 @@ def apply_links(panel: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     `series_id = "{universidad}|{código final}"`. Si dos centros de una serie
     coinciden en un curso se suma la matrícula (`min_count=1`: NaN si todos son
     NaN), `pct_women` se pondera por matrícula, `is_provisional` es verdadero si
-    alguno lo es y el nombre es el del centro más reciente de la serie.
+    alguno lo es y el nombre es el del centro más reciente de la serie. La región es la del
+    código final de la cadena.
     """
     final_code = _build_final_code_map(panel, links)
     data = panel.copy()
@@ -196,6 +198,9 @@ def apply_links(panel: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
         .groupby("series_id")["center_name"]
         .last()
     )
+
+    # Región: la del código final de la cadena.
+    regions = data[data["_is_final"]].groupby("series_id")["region"].first()
 
     # Media ponderada de % mujeres: solo cuentan filas con matrícula y porcentaje.
     has_both = data["enrolled"].notna() & data["pct_women"].notna()
@@ -221,4 +226,5 @@ def apply_links(panel: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     # Con un solo centro el porcentaje es el original (sin ruido de coma flotante).
     out["pct_women"] = np.where(out["n_centers"] == 1, out["_first_pct"], weighted)
     out["center_name"] = out["series_id"].map(names)
+    out["region"] = out["series_id"].map(regions)
     return out[SERIES_COLUMNS]

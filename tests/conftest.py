@@ -58,16 +58,25 @@ def make_row(
     return row
 
 
-def make_panel(rows: list[tuple[str, str, int, float]]) -> pd.DataFrame:
+def make_panel(
+    rows: list[tuple[str, str, int, float]],
+    regions: dict[tuple[str, str], str] | None = None,
+) -> pd.DataFrame:
     """Panel de la fase 1 a partir de tuplas (universidad, código de centro, año, matrícula).
 
     Rellena el resto de columnas con valores fijos; el último curso del panel
-    se marca como provisional, igual que hace la fase 1.
+    se marca como provisional, igual que hace la fase 1. `regions` asigna una región a
+    (universidad, código de centro); el resto queda en "Región A".
     """
     panel = pd.DataFrame(
         rows, columns=["university", "center_code", "year_start", "enrolled"]
     )
     panel["center_name"] = "Centro " + panel["center_code"]
+    regions = regions or {}
+    panel["region"] = [
+        regions.get(key, "Región A")
+        for key in zip(panel["university"], panel["center_code"])
+    ]
     panel["season"] = panel["year_start"].map(lambda y: f"{y}-{y + 1}")
     panel["pct_women"] = 70.0
     panel["is_provisional"] = panel["year_start"] == panel["year_start"].max()
@@ -76,6 +85,7 @@ def make_panel(rows: list[tuple[str, str, int, float]]) -> pd.DataFrame:
             "university",
             "center_code",
             "center_name",
+            "region",
             "year_start",
             "season",
             "enrolled",

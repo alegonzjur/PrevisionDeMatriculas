@@ -101,6 +101,7 @@ def long_frame(*rows):
             "pct_women",
         ],
     )
+    df["region"] = "Andalucía"
     df["season"] = df["year_start"].map(lambda y: f"{y}-{y + 1}")
     df["is_provisional"] = df["year_start"] == 2025
     return df
@@ -193,6 +194,7 @@ def test_unify_output_is_unique_per_center_and_year():
         "university",
         "center_code",
         "center_name",
+        "region",
         "year_start",
         "season",
         "enrolled",
@@ -223,3 +225,28 @@ def test_unify_keeps_sevilla_and_comillas_san_juan_de_dios_separate():
     )
     assert value(panel, "Sevilla", "41015500", 2025).enrolled == 67
     assert value(panel, "Pontificia Comillas", "28042772", 2025).enrolled == 1195
+
+
+def test_panel_keeps_region():
+    # La región (CCAA del SIIU) pasa al panel y es constante por centro.
+    sevilla = ("Sevilla", "41015500", "Centro de Enfermería San Juan de Dios")
+    long = long_frame(
+        (*GRANADA, "1500083", 2024, 100, 0.5),
+        (*GRANADA, "2501351", 2024, 300, 0.9),
+        (*sevilla, "2500001", 2024, 50, 0.8),
+    )
+    long.loc[long.university == "Sevilla", "region"] = "Andalucía (Sevilla)"
+    panel = unify_center_series(long, CleaningLog())
+    assert panel.groupby(["university", "center_code"])["region"].nunique().eq(1).all()
+    assert value(panel, "Granada", "18009225", 2024).region == "Andalucía"
+    assert value(panel, "Sevilla", "41015500", 2024).region == "Andalucía (Sevilla)"
+
+
+def test_unify_rejects_center_with_two_regions():
+    long = long_frame(
+        (*GRANADA, "1500083", 2024, 100, 0.5),
+        (*GRANADA, "2501351", 2024, 300, 0.9),
+    )
+    long.loc[long.degree_code == "1500083", "region"] = "Otra región"
+    with pytest.raises(ValueError, match="más de una región"):
+        unify_center_series(long, CleaningLog())
