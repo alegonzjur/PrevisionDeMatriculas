@@ -20,6 +20,7 @@ from prevision.config import (
     MA_WINDOW,
     MIN_TRAIN,
     MIN_TRAIN_EXAMPLES,
+    RECENT_TARGET_FROM,
     RIDGE_ALPHA,
 )
 from prevision.features import FEATURE_SETS, build_examples, build_prediction_rows
@@ -293,6 +294,25 @@ def add_size_tier(
     tiers = pd.qcut(quality.set_index("series_id")["size_last"], n_tiers, labels=labels)
     result = forecasts.copy()
     result["size_tier"] = result["series_id"].map(tiers.astype(object))
+    return result
+
+
+def recent_metrics(
+    forecasts: pd.DataFrame, first_target_year: int = RECENT_TARGET_FROM
+) -> pd.DataFrame:
+    """Métricas de los pares cuyo curso objetivo es `>= first_target_year`.
+
+    Los primeros orígenes entrenan con pocos ejemplos; este subconjunto deja ver cómo rinden
+    los modelos globales cuando ya hay varias cohortes de entrenamiento. Es descriptivo.
+    """
+    return compute_metrics(forecasts[forecasts["target_year"] >= first_target_year])
+
+
+def add_region(forecasts: pd.DataFrame, series: pd.DataFrame) -> pd.DataFrame:
+    """Añade `region` (CCAA del SIIU) a cada previsión por `series_id`."""
+    regions = series.drop_duplicates("series_id").set_index("series_id")["region"]
+    result = forecasts.copy()
+    result["region"] = result["series_id"].map(regions)
     return result
 
 

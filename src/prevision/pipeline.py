@@ -22,7 +22,13 @@ from prevision.config import (
     SHEET_CENTERS,
     SHEET_DEGREES,
 )
-from prevision.evaluation import metrics_report, rolling_origin_forecasts
+from prevision.evaluation import (
+    FORECAST_COLUMNS,
+    GLOBAL_MODELS,
+    metrics_report,
+    rolling_origin_forecasts,
+    rolling_origin_global,
+)
 from prevision.linking import apply_links, detect_candidates, load_links
 from prevision.loading import read_raw_sheet, wide_to_long
 from prevision.quality import series_quality
@@ -154,6 +160,35 @@ def evaluate_baselines(
     return forecasts, metrics
 
 
+def evaluate_models(
+    series: pd.DataFrame,
+    quality: pd.DataFrame,
+    out_dir: Path = PROCESSED_DIR,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Fase 4: previsiones de origen móvil de los modelos globales y sus métricas.
+
+    Solo entran las series elegibles. Escribe `model_forecasts.csv` (solo los modelos
+    globales) y `model_metrics.csv` (líneas base y modelos juntos, para que `*_vs_naive`
+    compare con el ingenuo). Devuelve `(forecasts, metrics)`, donde `forecasts` es la unión
+    de las líneas base y los modelos globales.
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    eligible_ids = quality.loc[quality["eligible"], "series_id"]
+    eligible = series[series["series_id"].isin(eligible_ids)]
+    model_forecasts = rolling_origin_global(eligible)
+    parts = [f for f in (rolling_origin_forecasts(eligible), model_forecasts) if not f.empty]
+    forecasts = (
+        pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=FORECAST_COLUMNS)
+    )
+    metrics = metrics_report(forecasts)
+
+    model_forecasts.to_csv(out_dir / "model_forecasts.csv", index=False, encoding="utf-8")
+    metrics.to_csv(out_dir / "model_metrics.csv", index=False, encoding="utf-8")
+    return forecasts, metrics
+
+
 def main() -> None:
     panel = run_pipeline()
     n_centers = panel.drop_duplicates(["university", "center_code"]).shape[0]
@@ -173,6 +208,16 @@ def main() -> None:
           f"{len(forecasts) // max(forecasts['model'].nunique(), 1)} pares por modelo")
     for row in totals.itertuples():
         print(f"  {row.model}: WAPE {row.wape:.1%}, MAE {row.mae:.1f}, MAPE {row.mape:.1%}")
+
+    _, model_metrics = evaluate_models(series, quality)
+    model_totals = model_metrics[
+        (model_metrics["scope"] == "todos")
+        & model_metrics["target_year"].isna()
+        & model_metrics["model"].isin(GLOBAL_MODELS)
+    ]
+    print("Modelos globales (WAPE total; entre paréntesis, frente al ingenuo):")
+    for row in model_totals.itertuples():
+        print(f"  {row.model}: WAPE {row.wape:.2%} ({row.wape_vs_naive:+.1%})")
 
 
 if __name__ == "__main__":

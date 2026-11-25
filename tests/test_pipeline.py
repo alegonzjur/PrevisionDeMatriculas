@@ -6,10 +6,12 @@ from conftest import build_workbook, make_panel, make_row
 
 from prevision.cleaning import CleaningLog, filter_nursing_degrees
 from prevision.config import RAW_FILE, SHEET_CENTERS
+from prevision.evaluation import GLOBAL_MODELS
 from prevision.loading import read_raw_sheet
 from prevision.pipeline import (
     build_series,
     evaluate_baselines,
+    evaluate_models,
     extract,
     load,
     run_pipeline,
@@ -222,3 +224,56 @@ def test_evaluate_baselines_without_eligible_series_returns_empty(tmp_path):
     assert forecasts.empty and metrics.empty
     saved = pd.read_csv(out / "baseline_forecasts.csv")
     assert saved.empty and "y_pred" in saved.columns
+
+
+# ------------------------------------------------------ evaluate_models
+
+
+def _many_series_rows(n_series=35):
+    """Panel con varias series elegibles: los modelos globales necesitan ejemplos suficientes."""
+    rows = []
+    for i in range(n_series):
+        for year in range(2015, 2026):
+            rows.append((f"U{i:02d}", f"C{i:02d}", year, 100.0 + (i % 7) * 10 + (3 + i % 5) * (year - 2015)))
+    return rows
+
+
+def test_evaluate_models_writes_files_and_shares_pairs(tmp_path):
+    series, quality = _series_and_quality(tmp_path, _many_series_rows())
+    out = tmp_path / "models_out"
+    baseline, _ = evaluate_baselines(series, quality, tmp_path / "base_out")
+    forecasts, metrics = evaluate_models(series, quality, out)
+    assert (out / "model_forecasts.csv").exists()
+    assert (out / "model_metrics.csv").exists()
+    # model_forecasts.csv solo lleva los modelos globales; lo devuelto, la unión con las líneas base.
+    saved = pd.read_csv(out / "model_forecasts.csv")
+    assert set(saved["model"]) == set(GLOBAL_MODELS)
+    assert set(forecasts["model"]) == set(GLOBAL_MODELS) | {"naive", "drift", "moving_average"}
+    pairs_per_model = forecasts.groupby("model").size()
+    assert pairs_per_model.nunique() == 1
+    assert pairs_per_model.iloc[0] == len(baseline) // 3
+    assert set(metrics["scope"]) == {"todos", "sin_provisional"}
+
+
+def test_metrics_include_naive_for_comparison(tmp_path):
+    series, quality = _series_and_quality(tmp_path, _many_series_rows())
+    out = tmp_path / "models_out"
+    evaluate_models(series, quality, out)
+    metrics = pd.read_csv(out / "model_metrics.csv")
+    total = metrics[(metrics["scope"] == "todos") & metrics["target_year"].isna()]
+    assert {"naive", "drift", "ridge", "gbm"} <= set(total["model"])
+    assert total.set_index("model").loc["naive", "wape_vs_naive"] == 0
+
+
+def test_evaluate_models_uses_only_eligible_series(tmp_path):
+    rows = _many_series_rows() + [("V", "B", y, 50.0) for y in range(2023, 2026)]
+    series, quality = _series_and_quality(tmp_path, rows)
+    forecasts, _ = evaluate_models(series, quality, tmp_path / "models_out")
+    assert "V|B" not in set(forecasts["series_id"])
+
+
+def test_evaluate_models_without_eligible_series_returns_empty(tmp_path):
+    rows = [("V", "B", y, 50.0) for y in range(2023, 2026)]
+    series, quality = _series_and_quality(tmp_path, rows)
+    forecasts, metrics = evaluate_models(series, quality, tmp_path / "models_out")
+    assert forecasts.empty and metrics.empty

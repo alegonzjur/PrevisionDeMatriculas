@@ -6,11 +6,13 @@ import pytest
 from sklearn.dummy import DummyRegressor
 
 import prevision.evaluation as evaluation
-from prevision.config import MIN_TRAIN_EXAMPLES
+from prevision.config import MIN_TRAIN_EXAMPLES, RECENT_TARGET_FROM
 from prevision.evaluation import (
     FORECAST_COLUMNS,
     GLOBAL_MODELS,
+    add_region,
     naive,
+    recent_metrics,
     rolling_origin_forecasts,
     rolling_origin_global,
 )
@@ -157,3 +159,36 @@ def test_predictions_are_positive_and_finite_for_all_models():
     assert np.isfinite(result["y_pred"]).all()
     assert (result["y_pred"] > 0).all()
     assert set(result["model"]) == set(GLOBAL_MODELS)
+
+
+# --- Funciones de informe (tarea 5) ------------------------------------------------------------
+
+
+def test_recent_metrics_filters_target_year():
+    forecasts = rolling_origin_global(
+        make_global_table(), models={"ridge": GLOBAL_MODELS["ridge"]}
+    )
+    forecasts = pd.concat(
+        [forecasts, rolling_origin_forecasts(make_global_table(), models={"naive": naive})],
+        ignore_index=True,
+    )
+    recent = recent_metrics(forecasts, first_target_year=2018)
+    subset = forecasts[forecasts["target_year"] >= 2018]
+    expected_pairs = subset.groupby("model").size()
+    assert recent.set_index("model")["n_pairs"].to_dict() == expected_pairs.to_dict()
+    assert (recent.set_index("model").loc["naive", "wape_vs_naive"]) == 0
+    # Con el corte por defecto solo cuentan los objetivos desde RECENT_TARGET_FROM.
+    default = recent_metrics(forecasts)
+    assert default.set_index("model")["n_pairs"].to_dict() == (
+        forecasts[forecasts["target_year"] >= RECENT_TARGET_FROM].groupby("model").size().to_dict()
+    )
+
+
+def test_add_region_by_series():
+    table = make_global_table()
+    forecasts = rolling_origin_global(table, models={"ridge": GLOBAL_MODELS["ridge"]})
+    with_region = add_region(forecasts, table)
+    assert with_region["region"].notna().all()
+    expected = table.drop_duplicates("series_id").set_index("series_id")["region"]
+    assert (with_region["region"] == with_region["series_id"].map(expected)).all()
+    assert len(with_region) == len(forecasts)
