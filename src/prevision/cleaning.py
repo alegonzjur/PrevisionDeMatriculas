@@ -59,6 +59,7 @@ PANEL_COLUMNS = [
     "university",
     "center_code",
     "center_name",
+    "region",
     "year_start",
     "season",
     "enrolled",
@@ -75,8 +76,13 @@ def unify_center_series(long: pd.DataFrame, log: CleaningLog) -> pd.DataFrame:
     La suma usa min_count=1: si todos los códigos son NaN, el resultado es NaN
     (nunca 0). El % de mujeres se pondera por matriculados. El nombre del centro
     es el de la fila con dato más reciente (el nombre puede cambiar con el mismo código).
+    La región (CCAA que trae el SIIU) es una por centro: si un centro tuviera dos, se rechaza.
     """
     df = long.copy()
+    regions_per_center = df.groupby(CENTER_KEY)["region"].nunique()
+    if (regions_per_center > 1).any():
+        bad = regions_per_center[regions_per_center > 1].index.tolist()
+        raise ValueError(f"Centros con más de una región: {bad}")
     n_series = len(df.drop_duplicates(CENTER_KEY + ["degree_code"]))
 
     # Celdas centro-curso en las que más de un código aporta dato.
@@ -108,6 +114,8 @@ def unify_center_series(long: pd.DataFrame, log: CleaningLog) -> pd.DataFrame:
     latest_any = ordered.groupby(CENTER_KEY)["center_name"].last()
     names = latest_with_data.combine_first(latest_any).rename("center_name").reset_index()
     panel = panel.merge(names, on=CENTER_KEY, how="left")
+    regions = df.groupby(CENTER_KEY, as_index=False)["region"].first()
+    panel = panel.merge(regions, on=CENTER_KEY, how="left")
 
     panel = panel.sort_values(CENTER_KEY + ["year_start"]).reset_index(drop=True)
     n_centers = len(panel.drop_duplicates(CENTER_KEY))
